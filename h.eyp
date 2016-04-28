@@ -104,6 +104,7 @@ sub new_label
 # Declare a new function. If definition is "real", this is a real function
 # definition, so save this in the %Function hash and create a label. If
 # it is just "proto", then save it as such and no label
+my $last_functionid="";
 sub new_functionid
 {
   my ($id, $definition)= @_;
@@ -112,6 +113,7 @@ sub new_functionid
 	if (defined($Function{$id}) && $Function{$id} eq "real");
   $Function{$id}=$definition;
   push(@$Line, [ "$id: 0" ]) if ($definition eq "real");
+  $last_functionid=$id;
 }
 
 
@@ -398,7 +400,9 @@ statement:
     | postop_statement 
 ;
 labeled_statement:
-      IDENTIFIER ':' statement
+      IDENTIFIER.i ':'
+  	{ push(@$Line, [ "$i:" ]); }
+      statement
 ;
 assignment_statement:
     lvalue_expression.l '=' bit_expression ';'
@@ -416,11 +420,14 @@ iteration_statement:
     | DO statement WHILE '(' expression ')' ';'
 ;
 jump_statement:
-      GOTO IDENTIFIER ';'
+      GOTO IDENTIFIER.i ';'
+  	{ push(@$Line, [ "jmp $i" ]); }
     | CONTINUE ';'
     | BREAK ';'
     | RETURN ';'
+	{ push(@$Line, ["jmp $last_functionid i"]); }
     | RETURN expression ';' 
+	{ push(@$Line, ["jmp $last_functionid i"]); }
 ;
 compound_statement:
       '{' '}'
