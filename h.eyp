@@ -24,7 +24,6 @@ my @branchop;        # How to branch based on the last bool expression
 my @Constlist;       # List of constants in array initialisation
 my %Global;          # List of known global identifiers
 my %Local;           # List of known local identifiers
-my @Tree;
 my @FinalLine;       # Array of references to arrays which contain all
 		     # the generated assembly code lines
 my @Forstack;	     # Stack of line arrayrefs of third expressions in FOR
@@ -38,7 +37,7 @@ my %Function=(       # List of known function identifiers
 		     # List of assembly code lines we have generated
 		     # but which have not yet been added to the final
 		     # set of lines in @FinalLine
-my $Line=[ ];
+my $Line=[ ['jms','main'],['sys','exit'] ];
 
 		     # List of keywords in the grammar
 my %Keyword= (
@@ -392,6 +391,20 @@ sub write_strliterals
   }
 }
 
+sub lac
+{
+  my $id= shift;
+  return if (!defined($id));
+  push(@$Line, ['lac', $id->[0], $id->[1] ]);
+}
+
+sub tempdac
+{
+  push(@$Line, ['dac', 'temp']);
+  return([ 'temp', '' ]);
+}
+
+
 %}
 
 %%
@@ -487,31 +500,51 @@ argument:
 ;
 basic_expression:
       IDENTIFIER.i
-	{ push(@Tree, "id $i"); }
+	{ [ $i, '' ]; }
     | '*' IDENTIFIER.i
-	{ push(@Tree, "starid $i"); }
+	{ [ $i, 'i' ]; }
     | CONSTANT.c
-	{ $c= ($c < 0) ? "m$c" : "d$c"; push(@Tree, "id $c"); }
+	{ $c= ($c < 0) ? [ "m$c", ''] : ["d$c", '']; }
     | STRINGLITERAL.s
-	{ push(@Tree, "id $s"); }
+	{ [ $s, '' ]; }
     | function_expression
     | '(' expression.e ')'
 ;
 multiplicative_expression:
       basic_expression
-    | multiplicative_expression '*' basic_expression
-	{ push(@Tree, '*'); }
-    | multiplicative_expression '/' basic_expression
-	{ push(@Tree, '/'); }
-    | multiplicative_expression '%' basic_expression
-	{ push(@Tree, '%'); }
+    | multiplicative_expression.lhs '*' basic_expression.rhs
+	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	  lac($lhs);
+  	  push(@$Line, ['mul', $rhs->[0], $rhs->[1] ]);
+	  undef;
+	}
+    | multiplicative_expression.lhs '/' basic_expression.rhs
+	{ $rhs= tempdac() if (!defined($rhs));
+	  lac($lhs);
+  	  push(@$Line, ['div', $rhs->[0], $rhs->[1] ]);
+	  undef;
+	}
+    | multiplicative_expression.lhs '%' basic_expression.rhs
+	{ $rhs= tempdac() if (!defined($rhs));
+	  lac($lhs);
+  	  push(@$Line, ['mod', $rhs->[0], $rhs->[1] ]);
+	  undef;
+	}
 ;
 additive_expression:
       multiplicative_expression
-    | additive_expression '+' multiplicative_expression
-	{ push(@Tree, '+'); }
-    | additive_expression '-' multiplicative_expression 
-	{ push(@Tree, '-'); }
+    | additive_expression.lhs '+' multiplicative_expression.rhs
+	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	  lac($lhs);
+  	  push(@$Line, ['tad', $rhs->[0], $rhs->[1] ]);
+	  undef;
+	}
+    | additive_expression.lhs '-' multiplicative_expression.rhs
+	{ $rhs= tempdac() if (!defined($rhs));
+	  lac($lhs);
+  	  push(@$Line, ['sub', $rhs->[0], $rhs->[1] ]);
+	  undef;
+	}
 ;
 shift_expression:
       additive_expression
@@ -751,7 +784,6 @@ sub Run {
     write_strliterals();
     push(@$Line, ['LLend:']);
     push(@FinalLine, $Line);
-print Dumper(\@Tree);
 
     # Print out the lines of code
     foreach my $lref (@FinalLine) {
