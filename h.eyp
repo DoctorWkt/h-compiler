@@ -438,8 +438,12 @@ postop_statement:
       postop_expression ';' 
 ;
 postop_expression:
-      lvalue_expression INC_OP
-    | lvalue_expression DEC_OP 
+      lvalue_expression.l INC_OP
+	{ push(@$Line, ['isz', $l->[0], $l->[1], '; opr' ]); }
+    | lvalue_expression.l DEC_OP 
+	{ push(@$Line, ['-1', '; tad', $l->[0], $l->[1]]);
+	  push(@$Line, ['dac', $l->[0], $l->[1]]);
+	}
 ;
 declaration_list:
       local_declaration
