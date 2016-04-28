@@ -9,5 +9,8 @@ hello.s: hello.h h.pm
 hello: hello.s
 	./as7 -o hello hello.s
 
+debug: hello
+	./a7out -b 10000 hello
+
 clean:
 	rm -f h.pm hello.s hello
