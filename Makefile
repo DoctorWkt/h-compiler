@@ -6,5 +6,8 @@ h.pm: h.eyp
 hello.s: hello.h h.pm
 	./h.pm hello.h
 
+hello: hello.s
+	./as7 -o hello hello.s
+
 clean:
-	rm -f h.pm hello.s
+	rm -f h.pm hello.s hello
