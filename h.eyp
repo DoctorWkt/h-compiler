@@ -5,9 +5,8 @@
 #
 %token IDENTIFIER CONSTANT STRINGLITERAL
 %token INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP 
-%token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN 
 %token CHAR INT VOID 
-%token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN 
+%token IF ELSE WHILE DO GOTO CONTINUE BREAK RETURN 
 %left WEAK 
 %right ELSE 
 %start translation_unit 
@@ -404,8 +403,10 @@ global_declarations:
     | global_declaration global_declarations 
 ;
 global_declaration:
-      type_declarator ';'
-    | type_declarator '=' CONSTANT ';'
+      type_declarator.d ';'
+	{ new_globalid($d,'',[0]); }
+    | type_declarator.d '=' CONSTANT.c ';'
+	{ new_globalid($d, '',[$c]); }
     | array_declaration
     | function_definition 
 ;
@@ -414,17 +415,32 @@ local_declaration:
     | type_declarator '=' expression ';' 
 ;
 array_declaration:
-      type_declarator '[' CONSTANT ']' ';'
-    | type_declarator '[' ']' '=' '{' constant_list '}' ';'
-    | type_declarator '[' ']' '=' STRINGLITERAL ';' 
+      type_declarator.d '[' CONSTANT.c ']' ';'
+        {
+          # Build a list of zero values
+          my @zlist;
+          foreach my $count (1 .. $c) {
+            push(@zlist, 0);
+          }
+          new_globalid($d, 'array', \@zlist);
+        }
+    | type_declarator.d '[' ']' '=' '{' constant_list.l '}' ';'
+	{ new_globalid($d, 'array', $l); }
+    | type_declarator.d '[' ']' '=' STRINGLITERAL.s ';' 
+        {
+          add_strliteral($s, $d);
+          new_globalid($d, 'array', undef);
+        }
 ;
 constant_list:
       CONSTANT
     | constant_list ',' CONSTANT 
 ;
 type_declarator:
-      type_specifier pointer IDENTIFIER
-    | type_specifier IDENTIFIER 
+      type_specifier pointer IDENTIFIER.i
+	{ $i; }
+    | type_specifier IDENTIFIER.i
+	{ $i; }
 ;
 type_specifier:
       VOID
@@ -450,40 +466,39 @@ parameter_declaration:
       type_declarator 
 ;
 lvalue_expression:
-      IDENTIFIER
-    | IDENTIFIER '[' expression ']'
-    | '*' IDENTIFIER
-    | '*' IDENTIFIER '[' expression ']' 
+      IDENTIFIER.i
+	{ [ $i, '' ]; }
+    | '*' IDENTIFIER.i
+	{ [ $i, 'i' ]; }
 ;
 function_expression:
       IDENTIFIER '(' ')'
-    | IDENTIFIER '(' argument_expression_list ')' 
+    | IDENTIFIER '(' argument_list ')' 
 ;
-argument_expression_list:
-      expression
-    | argument_expression_list ',' expression 
+argument_list:
+      argument
+    | argument_list ',' argument 
 ;
-postfix_expression:
-      lvalue_expression
-    | function_expression
-    | '(' expression ')'
+argument:
+      IDENTIFIER
     | CONSTANT
     | STRINGLITERAL
-    | '&' IDENTIFIER
-    | '&' IDENTIFIER '[' expression ']' 
 ;
-unary_expression:
-      postfix_expression
-    | '+' postfix_expression
-    | '-' postfix_expression
-    | '~' postfix_expression
-    | '!' postfix_expression 
+basic_expression:
+      IDENTIFIER.i
+	{ push(@$Line, ['lac',"$i"]); }
+    | '*' IDENTIFIER.i
+	{ push(@$Line, ['lac',"$i", 'i']); }
+    | CONSTANT
+    | STRINGLITERAL
+    | function_expression
+    | '(' expression.e ')'
 ;
 multiplicative_expression:
-      unary_expression
-    | multiplicative_expression '*' unary_expression
-    | multiplicative_expression '/' unary_expression
-    | multiplicative_expression '%' unary_expression 
+      basic_expression
+    | multiplicative_expression '*' basic_expression
+    | multiplicative_expression '/' basic_expression
+    | multiplicative_expression '%' basic_expression
 ;
 additive_expression:
       multiplicative_expression
@@ -492,8 +507,8 @@ additive_expression:
 ;
 shift_expression:
       additive_expression
-    | shift_expression LEFT_OP additive_expression
-    | shift_expression RIGHT_OP additive_expression 
+    | shift_expression LEFT_OP CONSTANT
+    | shift_expression RIGHT_OP CONSTANT 
 ;
 bit_expression:
       shift_expression
@@ -510,32 +525,12 @@ relational_expression:
     | relational_expression EQ_OP bit_expression
     | relational_expression NE_OP bit_expression 
 ;
-logical_expression:
-      relational_expression
-    | logical_expression AND_OP relational_expression
-    | logical_expression OR_OP relational_expression 
-;
-assignment_expression:
-      logical_expression
-    | lvalue_expression assignment_op assignment_expression 
-;
-assignment_op:
-      '='
-    | MUL_ASSIGN
-    | DIV_ASSIGN
-    | MOD_ASSIGN
-    | ADD_ASSIGN
-    | SUB_ASSIGN 
-;
 expression:
-      assignment_expression 
-;
-constant_expression:
-      logical_expression 
+      relational_expression 
 ;
 statement:
       labeled_statement
-    | expression_statement
+    | assignment_statement
     | selection_statement
     | iteration_statement
     | jump_statement
@@ -544,13 +539,14 @@ statement:
 ;
 labeled_statement:
       IDENTIFIER ':' statement
-    | CASE constant_expression ':' statement
-    | DEFAULT ':' statement 
+;
+assignment_statement:
+    lvalue_expression.l '=' bit_expression ';'
+	{ push(@$Line, ['dac', $l->[0], $l->[1] ]); }
 ;
 selection_statement:
       if_head %prec WEAK
     | if_head ELSE statement
-    | SWITCH '(' expression ')' statement 
 ;
 if_head:
       IF '(' expression ')' statement 
@@ -558,15 +554,6 @@ if_head:
 iteration_statement:
       WHILE '(' expression ')' statement
     | DO statement WHILE '(' expression ')' ';'
-    | FOR '(' expression_statement expression_statement third_for_expression ')' statement 
-;
-third_for_expression:
-      expression
-    | postop_expression 
-;
-expression_statement:
-      ';'
-    | expression ';' 
 ;
 jump_statement:
       GOTO IDENTIFIER ';'
