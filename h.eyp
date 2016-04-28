@@ -531,21 +531,39 @@ basic_expression:
 multiplicative_expression:
       basic_expression
     | multiplicative_expression.lhs '*' basic_expression.rhs
-	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	{ $lhs= tempdac() if (!defined($lhs));
+	  if (!defined($rhs)) {
+  	    push(@$Line, ['panic!']);
+	  } else {
+	    lac($rhs);
+  	    push(@$Line, ['dac .+4']);
+	  }
 	  lac($lhs);
-  	  push(@$Line, ['mul', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['cll; mul; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '/' basic_expression.rhs
-	{ $rhs= tempdac() if (!defined($rhs));
+	{ $lhs= tempdac() if (!defined($lhs));
+	  if (!defined($rhs)) {
+  	    push(@$Line, ['panic!']);
+	  } else {
+	    lac($rhs);
+  	    push(@$Line, ['dac .+4']);
+	  }
 	  lac($lhs);
-  	  push(@$Line, ['div', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['cll; idiv; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '%' basic_expression.rhs
-	{ $rhs= tempdac() if (!defined($rhs));
+	{ $lhs= tempdac() if (!defined($lhs));
+	  if (!defined($rhs)) {
+  	    push(@$Line, ['panic!']);
+	  } else {
+	    lac($rhs);
+  	    push(@$Line, ['dac .+4']);
+	  }
 	  lac($lhs);
-  	  push(@$Line, ['mod', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['cll; idiv; ..']);
 	  undef;
 	}
 ;
@@ -560,7 +578,9 @@ additive_expression:
     | additive_expression.lhs '-' multiplicative_expression.rhs
 	{ $rhs= tempdac() if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['sub', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['cma']);
+  	  push(@$Line, ['tad', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['cma']);
 	  undef;
 	}
 ;
