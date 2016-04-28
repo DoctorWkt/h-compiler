@@ -348,9 +348,26 @@ shift_expression:
 ;
 bit_expression:
       shift_expression
-    | bit_expression '&' shift_expression
-    | bit_expression '^' shift_expression
-    | bit_expression '|' shift_expression 
+    | bit_expression.lhs '&' shift_expression.rhs
+	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	  lac($lhs);
+  	  push(@$Line, ['and', $rhs->[0], $rhs->[1] ]);
+	  undef;
+	}
+    | bit_expression.lhs '^' shift_expression.rhs
+	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	  lac($lhs);
+  	  push(@$Line, ['xor', $rhs->[0], $rhs->[1] ]);
+	  undef;
+	}
+    | bit_expression.lhs '|' shift_expression.rhs
+	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	  lac($rhs);
+  	  push(@$Line, ['lmq']);
+	  lac($lhs);
+  	  push(@$Line, ['omq']);
+	  undef;
+	}
 ;
 relational_expression:
       bit_expression
