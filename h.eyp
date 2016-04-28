@@ -816,6 +816,8 @@ sub Run {
     $incomment  = 0;
     $linenumber = 0;
 
+    new_globalid('temp','',[0]);
+
     # Parse the class which is in this file
     my $t= $self->YYParse( yylex => \&_Lexer, yyerror => \&_Error);
 
