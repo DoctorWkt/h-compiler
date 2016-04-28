@@ -24,6 +24,7 @@ my @branchop;        # How to branch based on the last bool expression
 my @Constlist;       # List of constants in array initialisation
 my %Global;          # List of known global identifiers
 my %Local;           # List of known local identifiers
+my %Const;
 my @FinalLine;       # Array of references to arrays which contain all
 		     # the generated assembly code lines
 my @Forstack;	     # Stack of line arrayrefs of third expressions in FOR
@@ -179,7 +180,7 @@ sub new_functionid
   Die("$id function already declared")
 	if (defined($Function{$id}) && $Function{$id} eq "real");
   $Function{$id}=$definition;
-  push(@$Line, [ "$id:"]) if ($definition eq "real");
+  push(@$Line, [ "$id: 0" ]) if ($definition eq "real");
   $last_functionid=$id;
 }
 
@@ -404,6 +405,16 @@ sub tempdac
   return([ 'temp', '' ]);
 }
 
+sub new_const
+{
+  my $c= shift;
+  if ($c<0) {
+    $Const{"m$c"}=$c;
+  } else {
+    $Const{"d$c"}=$c;
+  }
+}
+
 
 %}
 
@@ -465,9 +476,16 @@ pointer:
       '*' 
 ;
 function_definition:
-      function_declarator '(' ')' ';'
-    | function_declarator '(' ')' compound_statement
-    | function_declarator '(' parameter_list ')' compound_statement 
+      function_declarator.f '(' ')' ';'
+	{ new_functionid($f,'proto'); }
+    | function_declarator.f '(' ')'
+	{ new_functionid($f,'real'); }
+      compound_statement
+	{ push(@$Line, ["jmp $f i"]); }
+    | function_declarator.f '(' parameter_list ')'
+	{ new_functionid($f,'real'); }
+      compound_statement 
+	{ push(@$Line, ["jmp $f i"]); }
 ;
 function_declarator:
       type_declarator 
@@ -504,7 +522,7 @@ basic_expression:
     | '*' IDENTIFIER.i
 	{ [ $i, 'i' ]; }
     | CONSTANT.c
-	{ $c= ($c < 0) ? [ "m$c", ''] : ["d$c", '']; }
+	{ new_const($c); $c= ($c < 0) ? [ "m$c", ''] : ["d$c", '']; }
     | STRINGLITERAL.s
 	{ [ $s, '' ]; }
     | function_expression
@@ -792,6 +810,11 @@ sub Run {
         $line= "\t" . $line if (!($l->[0]=~ m{:}));
         print($OUT "$line\n");
       }
+    }
+
+    # Print out constants
+    foreach my $c (keys(%Const)) {
+      print($OUT "$c: $Const{$c}\n");
     }
 
     # Close the in/out files
