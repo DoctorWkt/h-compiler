@@ -24,6 +24,7 @@ my @branchop;        # How to branch based on the last bool expression
 my @Constlist;       # List of constants in array initialisation
 my %Global;          # List of known global identifiers
 my %Local;           # List of known local identifiers
+my @Tree;
 my @FinalLine;       # Array of references to arrays which contain all
 		     # the generated assembly code lines
 my @Forstack;	     # Stack of line arrayrefs of third expressions in FOR
@@ -486,24 +487,31 @@ argument:
 ;
 basic_expression:
       IDENTIFIER.i
-	{ push(@$Line, ['lac',"$i"]); }
+	{ push(@Tree, "id $i"); }
     | '*' IDENTIFIER.i
-	{ push(@$Line, ['lac',"$i", 'i']); }
-    | CONSTANT
-    | STRINGLITERAL
+	{ push(@Tree, "starid $i"); }
+    | CONSTANT.c
+	{ $c= ($c < 0) ? "m$c" : "d$c"; push(@Tree, "id $c"); }
+    | STRINGLITERAL.s
+	{ push(@Tree, "id $s"); }
     | function_expression
     | '(' expression.e ')'
 ;
 multiplicative_expression:
       basic_expression
     | multiplicative_expression '*' basic_expression
+	{ push(@Tree, '*'); }
     | multiplicative_expression '/' basic_expression
+	{ push(@Tree, '/'); }
     | multiplicative_expression '%' basic_expression
+	{ push(@Tree, '%'); }
 ;
 additive_expression:
       multiplicative_expression
     | additive_expression '+' multiplicative_expression
+	{ push(@Tree, '+'); }
     | additive_expression '-' multiplicative_expression 
+	{ push(@Tree, '-'); }
 ;
 shift_expression:
       additive_expression
@@ -743,6 +751,7 @@ sub Run {
     write_strliterals();
     push(@$Line, ['LLend:']);
     push(@FinalLine, $Line);
+print Dumper(\@Tree);
 
     # Print out the lines of code
     foreach my $lref (@FinalLine) {
