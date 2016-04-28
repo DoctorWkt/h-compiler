@@ -259,8 +259,10 @@ lvalue_expression:
 	{ [ $i, 'i' ]; }
 ;
 function_expression:
-      IDENTIFIER '(' ')'
-    | IDENTIFIER '(' argument_list ')' 
+      IDENTIFIER.f '(' ')'
+	{ push(@$Line, ["jms $f"]); }
+    | IDENTIFIER.f '(' argument_list ')' 
+	{ push(@$Line, ["jms $f"]); }
 ;
 argument_list:
       argument
@@ -365,6 +367,7 @@ expression:
 statement:
       labeled_statement
     | assignment_statement
+    | function_expression ';'
     | selection_statement
     | iteration_statement
     | jump_statement
