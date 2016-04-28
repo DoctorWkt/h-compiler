@@ -343,8 +343,14 @@ additive_expression:
 ;
 shift_expression:
       additive_expression
-    | shift_expression LEFT_OP CONSTANT
-    | shift_expression RIGHT_OP CONSTANT 
+    | shift_expression.lhs LEFT_OP CONSTANT.c
+	{ lac($lhs);
+  	  push(@$Line, ['lls', $c]);
+	}
+    | shift_expression.lhs RIGHT_OP CONSTANT.c
+	{ lac($lhs);
+  	  push(@$Line, ['lrss', $c]);
+	}
 ;
 bit_expression:
       shift_expression
