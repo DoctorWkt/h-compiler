@@ -1,16 +1,16 @@
-int x = 17;
-int y = 3;
-int z = 4;
+int x = 2;
+int y = 32;
+int z = 8;
 int a;
 int b;
 
-void fred()
-{
-  a= x - y * z;
-  b= a + 5;
-}
-
 void main()
 {
-  fred();
+fred:
+  a= y >> 3;
+  a++;
+  return;
+  goto fred;
+  a= y >> 3;
+  a--;
 }
