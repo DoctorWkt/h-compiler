@@ -86,7 +86,12 @@ sub new_globalid
   Die("$id global already declared") if (defined($Global{$id}));
   $Global{$id}=$type;
   return if (!defined($valref));
-  push(@$Line, [ "$id:"]);
+  if ($type eq "array") {
+    push(@$Line, [ "$id: $id.base"]);
+    push(@$Line, [ "$id.base:"]);
+  } else {
+    push(@$Line, [ "$id:"]);
+  }
   foreach my $val (@$valref) {
     push(@$Line, [ "\t$val"]);
   }
