@@ -436,8 +436,8 @@ relational_expression:
 	    lac($lhs);
 	    push(@$Line, ['sad', getid($rhs) ]);
             push(@$Line, ["  jmp $third"]);
-            push(@$Line, ["jmp $lifref->[-1]->[1]"]);
-            push(@$Line, ["$third:"]);
+            push(@$Line, ["jmp $lifref->[-1]->[0]\t\t\" NE"]);
+            push(@$Line, ["$third:\t\t\" third"]);
 	  }
 	}
     | relational_expression.lhs NE_OP bit_expression.rhs
@@ -446,7 +446,7 @@ relational_expression:
 	  if (defined($rhs)) {
 	    lac($lhs);
 	    push(@$Line, ['sad', getid($rhs) ]);
-            push(@$Line, ["  jmp $lifref->[-1]->[1]"]);
+            push(@$Line, ["  jmp $lifref->[-1]->[0]\t\t\" EQ"]);
 	  }
 	}
 ;
@@ -474,13 +474,15 @@ assignment_statement:
 ;
 selection_statement:
       if_head %prec WEAK
-        { push(@$Line, ["$ifstack[-1]->[1]:"]);
+        { push(@$Line, ["$ifstack[-1]->[0]:\t\t\" IFsingle top"]);
           pop(@ifstack);
         }
     | if_head
-	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]); }
+	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]);
+          push(@$Line, ["$ifstack[-1]->[0]:\t\t\" IFelse top"]); 
+	}
       ELSE statement
-        { push(@$Line, ["$ifstack[-1]->[1]:"]);
+        { push(@$Line, ["$ifstack[-1]->[1]:\t\t\" ELSE"]);
 	  pop(@ifstack);
 	}
 ;
@@ -492,36 +494,34 @@ if_head:
           push(@ifstack, [ $false, $end ]);
 	  $lifref= \@ifstack;
         }
-      '(' expression ')'
-        { push(@$Line, ["$ifstack[-1]->[0]:"]); }
-      statement 
+      '(' expression ')' statement 
 ;
 iteration_statement:
       WHILE
         { # Generate start and end labels for this loop
           my $start= new_label();
           my $end= new_label();
-          push(@loopstack, [ $start, $end ]);
+          push(@loopstack, [ $end, $start ]);
 	  $lifref= \@loopstack;
-          push(@$Line, ["$start:"]);
+          push(@$Line, ["$start:\t\t\" WHILE start"]);
         }
       '(' expression ')'
       statement
-        { push(@$Line, ["jmp $loopstack[-1]->[0]"]);
-          push(@$Line, ["$loopstack[-1]->[1]:"]);
+        { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
+          push(@$Line, ["$loopstack[-1]->[0]:\t\t\" WHILE end"]);
 	  pop(@loopstack);
 	}
     | DO
         { # Generate start and end labels for this loop
           my $start= new_label();
           my $end= new_label();
-          push(@loopstack, [ $start, $end ]);
+          push(@loopstack, [ $end, $start ]);
 	  $lifref= \@loopstack;
-          push(@$Line, ["$start:"]);
+          push(@$Line, ["$start:\t\t\" DO start"]);
         }
       statement WHILE '(' expression ')' ';'
-        { push(@$Line, ["jmp $loopstack[-1]->[0]"]);
-          push(@$Line, ["$loopstack[-1]->[1]:"]);
+        { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
+          push(@$Line, ["$loopstack[-1]->[0]:\t\t\" DO end"]);
 	  pop(@loopstack);
 	}
     | FOR
@@ -529,9 +529,9 @@ iteration_statement:
         { # Generate start and end labels for this loop
           my $start= new_label();
           my $end= new_label();
-          push(@loopstack, [ $start, $end ]);
+          push(@loopstack, [ $end, $start ]);
 	  $lifref= \@loopstack;
-          push(@$Line, ["$start:"]);
+          push(@$Line, ["$start:\t\t\" FOR start"]);
         }
       expression ';'
         { # Move all the current lines over to FinalLine
@@ -546,8 +546,8 @@ iteration_statement:
           # and save in the FinalLine array
           push(@FinalLine, pop(@Forstack));
           # Now add in the jump at the end of the loop
-          push(@$Line, ["jmp $loopstack[-1]->[0]"]);
-          push(@$Line, ["$loopstack[-1]->[1]:"]);
+          push(@$Line, ["jmp $loopstack[-1]->[1]"]);
+          push(@$Line, ["$loopstack[-1]->[0]:\t\t\" FOR end"]);
 	  pop(@loopstack);
         }
 ;
@@ -568,9 +568,9 @@ jump_statement:
       GOTO IDENTIFIER.i ';'
   	{ push(@$Line, [ "jmp $i" ]); }
     | CONTINUE ';'
-	{ push(@$Line, ["jmp $loopstack[-1]->[0]"]); }
+	{ push(@$Line, ["jmp $loopstack[-1]->[1]\t\t\" CONTINUE"]); }
     | BREAK ';'
-	{ push(@$Line, ["jmp $loopstack[-1]->[1]"]); }
+	{ push(@$Line, ["jmp $loopstack[-1]->[0]\t\t\" BREAK"]); }
     | RETURN ';'
 	{ push(@$Line, ["jmp $last_functionid i"]); }
     | RETURN '(' expression.e ')' ';' 
