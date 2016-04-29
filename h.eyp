@@ -454,7 +454,6 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       '(' expression ')'
-        { push(@$Line, ["$ifstack[-1]->[0]:"]); }
       statement
         { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
           push(@$Line, ["$ifstack[-1]->[1]:"]);
