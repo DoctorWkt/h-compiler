@@ -426,21 +426,21 @@ relational_expression:
 	{
 	  # Use sad if rhs exists
 	  if (defined($rhs)) {
-	    lac($lhs);
-	    push(@$Line, ['sad', getid($rhs) ]);
-            push(@$Line, ["  jmp $ifstack[-1]->[1]"]);
-	  }
-	}
-    | relational_expression.lhs NE_OP bit_expression.rhs
-	{
-	  # Use sad if rhs exists
-	  if (defined($rhs)) {
 	    my $third= new_label();
 	    lac($lhs);
 	    push(@$Line, ['sad', getid($rhs) ]);
             push(@$Line, ["  jmp $third"]);
             push(@$Line, ["jmp $ifstack[-1]->[1]"]);
             push(@$Line, ["$third:"]);
+	  }
+	}
+    | relational_expression.lhs NE_OP bit_expression.rhs
+	{
+	  # Use sad if rhs exists
+	  if (defined($rhs)) {
+	    lac($lhs);
+	    push(@$Line, ['sad', getid($rhs) ]);
+            push(@$Line, ["  jmp $ifstack[-1]->[1]"]);
 	  }
 	}
 ;

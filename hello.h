@@ -1,6 +1,13 @@
-int x = 2;
+int x;
+int end=11;
 
 void main()
 {
-  printn(x);
+  x=1;
+  while (x != end) {
+    printn(x);
+    if (x == 4) 
+      printn(400);
+    x++;
+  }
 }
