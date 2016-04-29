@@ -1,0 +1,7 @@
+#!/bin/sh
+sfile=`echo $1 | sed 's/h$/s/'`
+outfile=`echo $1 | sed 's/h$/out/'`
+../h.pm $1
+../as7 $sfile ../hrt.s
+../a7out a.out > $outfile
+rm -f $sfile a.out

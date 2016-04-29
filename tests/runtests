@@ -1,0 +1,18 @@
+#!/bin/sh
+#for i in t?.h t??.h
+for i in t?.h
+do echo -n $i
+   sfile=`echo $i | sed 's/h$/s/'`
+   outfile=`echo $i | sed 's/h$/out/'`
+   ../h.pm $i
+   ../as7 $sfile ../hrt.s 2> /dev/null
+   ../a7out a.out > $$
+   cmp -s $outfile $$
+   if [ "$?" -eq "1" ]
+   then echo ": failed"
+	diff -c $outfile $$
+	echo
+   else echo ""
+   fi
+   rm -f $sfile $$ a.out
+done
