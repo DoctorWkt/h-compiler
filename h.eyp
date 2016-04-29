@@ -250,8 +250,14 @@ array_declaration:
         }
 ;
 constant_list:
-      CONSTANT
-    | constant_list ',' CONSTANT 
+      CONSTANT.c
+	{ # Return an arrayref with one element
+	  [ $c ];
+	}
+    | constant_list.l ',' CONSTANT.c
+	{ # Return an arrayref with an extra element
+          push(@$l, $c); $l;
+	}
 ;
 type_declarator:
       type_specifier pointer IDENTIFIER.i
