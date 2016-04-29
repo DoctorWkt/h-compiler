@@ -458,7 +458,17 @@ iteration_statement:
         { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
           push(@$Line, ["$ifstack[-1]->[1]:"]);
 	}
-    | DO statement WHILE '(' expression ')' ';'
+    | DO
+        { # Generate start and end labels for this loop
+          my $start= new_label();
+          my $end= new_label();
+          push(@ifstack, [ $start, $end ]);
+          push(@$Line, ["$start:"]);
+        }
+      statement WHILE '(' expression ')' ';'
+        { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
+          push(@$Line, ["$ifstack[-1]->[1]:"]);
+	}
 ;
 jump_statement:
       GOTO IDENTIFIER.i ';'
