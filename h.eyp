@@ -469,7 +469,44 @@ iteration_statement:
         { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
           push(@$Line, ["$ifstack[-1]->[1]:"]);
 	}
+    | FOR
+      '(' assignment_statement
+        { # Generate start and end labels for this loop
+          my $start= new_label();
+          my $end= new_label();
+          push(@ifstack, [ $start, $end ]);
+          push(@$Line, ["$start:"]);
+        }
+      expression
+        { # Move all the current lines over to FinalLine
+          # and empty $Line for the third statement
+          push(@FinalLine, $Line); $Line= [];
+        }
+      third_for_expression ')' statement
+        {
+          # Move all the current lines over to FinalLine
+          push(@FinalLine, $Line); $Line= [];
+          # Pop off the most recent FOR third statement code
+          # and save in the FinalLine array
+          push(@FinalLine, pop(@Forstack));
+          # Now add in the jump at the end of the loop
+          push(@$Line, ["jmp $ifstack[-1]->[0]"]);
+          push(@$Line, ["$ifstack[-1]->[1]:"]);
+        }
 ;
+third_for_expression:
+      assignment_statement
+        {
+          # Push the third statement code onto the Forstack
+          push(@Forstack, $Line); $Line= [];
+        }
+    | postop_statement
+        {
+          # Push the third statement code onto the Forstack
+          push(@Forstack, $Line); $Line= [];
+        }
+;
+
 jump_statement:
       GOTO IDENTIFIER.i ';'
   	{ push(@$Line, [ "jmp $i" ]); }
