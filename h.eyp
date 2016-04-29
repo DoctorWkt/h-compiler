@@ -120,6 +120,7 @@ sub getid
 my $label=0;
 my @loopstack;
 my @ifstack;
+my $lifref;	# Points to either the loopstack or the ifstack
 
 # Return a new label
 sub new_label
@@ -435,7 +436,7 @@ relational_expression:
 	    lac($lhs);
 	    push(@$Line, ['sad', getid($rhs) ]);
             push(@$Line, ["  jmp $third"]);
-            push(@$Line, ["jmp $ifstack[-1]->[1]"]);
+            push(@$Line, ["jmp $lifref->[-1]->[1]"]);
             push(@$Line, ["$third:"]);
 	  }
 	}
@@ -445,7 +446,7 @@ relational_expression:
 	  if (defined($rhs)) {
 	    lac($lhs);
 	    push(@$Line, ['sad', getid($rhs) ]);
-            push(@$Line, ["  jmp $ifstack[-1]->[1]"]);
+            push(@$Line, ["  jmp $lifref->[-1]->[1]"]);
 	  }
 	}
 ;
@@ -478,9 +479,7 @@ selection_statement:
         }
     | if_head
 	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]); }
-      ELSE
-        { push(@$Line, ["$ifstack[-1]->[0]:"]); }
-      statement
+      ELSE statement
         { push(@$Line, ["$ifstack[-1]->[1]:"]);
 	  pop(@ifstack);
 	}
@@ -491,6 +490,7 @@ if_head:
           my $false= new_label();
           my $end= new_label();
           push(@ifstack, [ $false, $end ]);
+	  $lifref= \@ifstack;
         }
       '(' expression ')'
         { push(@$Line, ["$ifstack[-1]->[0]:"]); }
@@ -501,33 +501,36 @@ iteration_statement:
         { # Generate start and end labels for this loop
           my $start= new_label();
           my $end= new_label();
-          push(@ifstack, [ $start, $end ]);
+          push(@loopstack, [ $start, $end ]);
+	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
       '(' expression ')'
       statement
-        { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
-          push(@$Line, ["$ifstack[-1]->[1]:"]);
-	  pop(@ifstack);
+        { push(@$Line, ["jmp $loopstack[-1]->[0]"]);
+          push(@$Line, ["$loopstack[-1]->[1]:"]);
+	  pop(@loopstack);
 	}
     | DO
         { # Generate start and end labels for this loop
           my $start= new_label();
           my $end= new_label();
-          push(@ifstack, [ $start, $end ]);
+          push(@loopstack, [ $start, $end ]);
+	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
       statement WHILE '(' expression ')' ';'
-        { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
-          push(@$Line, ["$ifstack[-1]->[1]:"]);
-	  pop(@ifstack);
+        { push(@$Line, ["jmp $loopstack[-1]->[0]"]);
+          push(@$Line, ["$loopstack[-1]->[1]:"]);
+	  pop(@loopstack);
 	}
     | FOR
       '(' assignment_statement ';'
         { # Generate start and end labels for this loop
           my $start= new_label();
           my $end= new_label();
-          push(@ifstack, [ $start, $end ]);
+          push(@loopstack, [ $start, $end ]);
+	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
       expression ';'
@@ -543,9 +546,9 @@ iteration_statement:
           # and save in the FinalLine array
           push(@FinalLine, pop(@Forstack));
           # Now add in the jump at the end of the loop
-          push(@$Line, ["jmp $ifstack[-1]->[0]"]);
-          push(@$Line, ["$ifstack[-1]->[1]:"]);
-	  pop(@ifstack);
+          push(@$Line, ["jmp $loopstack[-1]->[0]"]);
+          push(@$Line, ["$loopstack[-1]->[1]:"]);
+	  pop(@loopstack);
         }
 ;
 third_for_expression:
@@ -565,9 +568,9 @@ jump_statement:
       GOTO IDENTIFIER.i ';'
   	{ push(@$Line, [ "jmp $i" ]); }
     | CONTINUE ';'
-	{ push(@$Line, ["jmp $ifstack[-1]->[0]"]); }
+	{ push(@$Line, ["jmp $loopstack[-1]->[0]"]); }
     | BREAK ';'
-	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]); }
+	{ push(@$Line, ["jmp $loopstack[-1]->[1]"]); }
     | RETURN ';'
 	{ push(@$Line, ["jmp $last_functionid i"]); }
     | RETURN '(' expression.e ')' ';' 
