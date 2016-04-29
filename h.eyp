@@ -48,10 +48,8 @@ my $Line=[ ['jms','main'],['sys','exit'] ];
 		     # List of keywords in the grammar
 my %Keyword= (
   'break' => 'BREAK',
-  'case' => 'CASE',
   'char' => 'CHAR',
   'continue' => 'CONTINUE',
-  'default' => 'DEFAULT',
   'do' => 'DO',
   'else' => 'ELSE',
   'for' => 'FOR',
@@ -478,7 +476,14 @@ selection_statement:
         { push(@$Line, ["$ifstack[-1]->[1]:"]);
           pop(@ifstack);
         }
-    | if_head ELSE statement
+    | if_head
+	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]); }
+      ELSE
+        { push(@$Line, ["$ifstack[-1]->[0]:"]); }
+      statement
+        { push(@$Line, ["$ifstack[-1]->[1]:"]);
+	  pop(@ifstack);
+	}
 ;
 if_head:
       IF
@@ -503,6 +508,7 @@ iteration_statement:
       statement
         { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
           push(@$Line, ["$ifstack[-1]->[1]:"]);
+	  pop(@ifstack);
 	}
     | DO
         { # Generate start and end labels for this loop
@@ -514,6 +520,7 @@ iteration_statement:
       statement WHILE '(' expression ')' ';'
         { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
           push(@$Line, ["$ifstack[-1]->[1]:"]);
+	  pop(@ifstack);
 	}
     | FOR
       '(' assignment_statement ';'
@@ -538,6 +545,7 @@ iteration_statement:
           # Now add in the jump at the end of the loop
           push(@$Line, ["jmp $ifstack[-1]->[0]"]);
           push(@$Line, ["$ifstack[-1]->[1]:"]);
+	  pop(@ifstack);
         }
 ;
 third_for_expression:
@@ -557,7 +565,9 @@ jump_statement:
       GOTO IDENTIFIER.i ';'
   	{ push(@$Line, [ "jmp $i" ]); }
     | CONTINUE ';'
+	{ push(@$Line, ["jmp $ifstack[-1]->[0]"]); }
     | BREAK ';'
+	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]); }
     | RETURN ';'
 	{ push(@$Line, ["jmp $last_functionid i"]); }
     | RETURN '(' expression.e ')' ';' 
