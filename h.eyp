@@ -221,9 +221,16 @@ global_declaration:
     | array_declaration
     | function_definition 
 ;
+# XXX Somehow I need to rationalise type_declarator
+# lvalue_expression and argument
+#
 local_declaration:
-      type_declarator ';'
-    | type_declarator '=' expression ';' 
+      type_declarator.p ';'
+	{ new_localid($last_functionid, $p); }
+    | type_declarator.p '=' bit_expression.e ';' 
+	{ new_localid($last_functionid, $p);
+	  lac($e); push(@$Line, [ 'dac', getid([$p,'']) ]);
+	}
 ;
 array_declaration:
       type_declarator.d '[' CONSTANT.c ']' ';'
