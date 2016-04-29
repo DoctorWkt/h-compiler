@@ -1,0 +1,1544 @@
+#!/usr/bin/perl
+#
+# a7out: user-mode simulator for PDP-7 Unix applications
+#
+# (c) 2016 Warren Toomey, GPL3
+#
+use strict;
+use warnings;
+use Fcntl qw(:seek);
+use DateTime;
+use Data::Dumper;
+
+### Global variables ###
+my $debug      = 0;    # Debug flag
+my $singlestep = 0;    # Are we running in single-step mode?
+my $coverage   = 0;    # Print out code coverage
+my %Breakpoint;        # Hash of defined breakpoints
+my @Mem;               # 8K 18-bit words of main memory
+my %Addr2Name;	       # Map addresses to names
+my %Name2Addr;	       # Map names to addresses
+my @CC;		       # Code coverage: what addrs executed instructions
+my @FD;                # Array of open filehandles
+my @ISBINARY;          # Array of filehandle flags: ASCII or binary files?
+
+# Registers
+my $PC   = 010000;     # Program counter
+my $AC   = 0;          # Accumulator
+my $LINK = 0;          # Link register, either 0 or LINKMASK
+my $MQ   = 0;          # MQ register
+
+# Constants
+use constant MAXINT    => 0777777;     # Biggest unsigned integer
+use constant MAXPOSINT => 0377777;     # Biggest signed integer
+use constant MAXADDR   => 017777;      # Largest memory address
+use constant LINKMASK  => 01000000;    # Mask for LINK register
+use constant EAESTEP   => 077;         # EAE step count mask
+use constant EAEIMASK  => 0777700;     # EAE instruction mask
+use constant SIGN      => 0400000;     # Sign bit
+
+use constant EPSILON   => 99;	       # max delta for symbol display
+
+### Main program ###
+
+# Get any optional arguments
+while ( defined( $ARGV[0] ) && ( $ARGV[0] =~ m{^-} ) ) {
+
+    # -d: debug mode
+    if ( $ARGV[0] eq "-d" ) {
+        $debug = 1;
+        shift(@ARGV);
+    }
+
+    # -b: set a breakpoint
+    if ( $ARGV[0] eq "-b" ) {
+        shift(@ARGV);
+        $Breakpoint{ lookup( shift(@ARGV) ) } = 1;
+    }
+
+    # -c: print out code coverage
+    if ( $ARGV[0] eq "-c" ) {
+        shift(@ARGV);
+        $coverage= 1;
+    }
+
+    # -n: read a namelist file
+    if ( $ARGV[0] eq "-n" ) {
+        shift(@ARGV);
+	load_names( shift(@ARGV) );
+    }
+}
+
+# Check the arguments
+die("Usage: $0 [-c] [-d] [-b breakpoint] [-n namelist] a.outfile [arg1 arg2 ...]\n")
+  if ( @ARGV < 1 );
+
+# Load the a.out file into memory
+# and simulate it
+load_code( $ARGV[0] );
+set_arguments();
+
+#dump_memory(0, MAXADDR, 0);
+#exit(0);
+simulate();
+print_coverage() if ($coverage);
+exit(0);
+
+# Print out the code coverage
+sub print_coverage {
+  foreach my $addr (0 .. MAXADDR ) {
+    printf("%06o: %d\n", $addr, $CC[$addr]) if ($CC[$addr]);
+  }
+}
+
+### Load the a.out file into memory
+sub load_code {
+    my $filename = shift;
+
+    # Fill all the 8K words in memory with zeroes
+    foreach my $i ( 0 .. MAXADDR ) {
+        $Mem[$i] = 0;
+    }
+
+    # Set up some open filehandles
+    $FD[0] = \*STDIN;
+    $FD[1] = \*STDOUT;
+    $FD[8] = \*STDERR;    # According to cat.s (uses d8 == 8)
+
+    # Open up the PDP-7 executable file
+    open( my $IN, "<", $filename ) || die("Unable to open $filename: $!\n");
+    my $c = getc($IN);
+    seek $IN, 0, 0;
+    if ((ord($c) & 0300) == 0200) { # handle "binary paper tape" format
+	my $addr = 010000;	# user programs loaded at 4K mark
+	while ($addr <= 017777) {
+	    my $result = read_word($IN);
+	    last if ($result == -1);
+	    $Mem[$addr++] = $result;
+	}
+	close($IN);
+	return;
+    }
+    while (<$IN>) {
+        chomp;
+
+        # Lose any textual stuff after a tab character
+        $_ =~ s{\t.*}{};
+
+        # Split into location and value, both in octal
+        my ( $loc, $val ) = split( /:\s+/, $_ );
+
+        # Convert from octal and save
+        $loc       = oct($loc);
+        $val       = oct($val);
+        $Mem[$loc] = $val;
+    }
+    close($IN);
+}
+
+### read a word from a file in paper tape binary format
+### return -1 on EOF
+sub read_word {
+    my $F = shift;
+    # Convert three bytes into one 18-bit word
+    return -1 if ( read( $F, my $three, 3 ) != 3 ); # Not enough bytes read
+    my ( $b1, $b2, $b3 ) = unpack( "CCC", $three );
+    return ((($b1 & 077) << 12 ) |
+	    (($b2 & 077) << 6 ) |
+	     ($b3 & 077));
+}
+
+### Copy the arguments into the PDP-7 memory space, and build
+### an array of pointers to these arguments. Build a pointer
+### at MAXADDR that points at the array.
+###
+### Each argument string is four words long and space padded if the
+### string is not eight characters long. These are stored below
+### address MAXADDR. Below this is the count of words in the strings.
+### Address MAXADDR points at the word count. Graphically (for two arguments):
+###
+###     +------------+
+###  +--|            | Location 017777 (MAXADDR)
+###  |  +------------+
+###  |  |............|
+###  |  |............| argv[2]
+###  |  |............|
+###  |  +------------+
+###  |  |............|
+###  |  |............| argv[1]
+###  |  |............|
+###  |  +------------+
+###  |  |............|
+###  |  |............| argv[0]
+###  |  |............|
+###  |  +------------+
+###  +->|  argc=12   |
+###     +------------+
+###
+sub set_arguments {
+
+    # Get the number of arguments including the command name
+    my $argc = scalar(@ARGV);
+
+    # We now know that argc will appear in memory
+    # 4*argc +1 below location MAXADDR
+    # Set argc to the number of words
+    my $addr = MAXADDR - ( 4 * $argc + 1 );
+    $Mem[MAXADDR] = $addr;
+    $Mem[ $addr++ ] = $argc * 4;
+
+    # Now start saving the arguments
+    foreach (@ARGV) {
+
+        # Truncate and/or space pad the argument
+        my $str = sprintf( "%-8s", substr( $_, 0, 8 ) );
+
+        # XXX: use ascii2words
+        # Store pairs of characters into memory
+        for ( my $i = 0 ; $i < length($str) ; $i += 2 ) {
+            my $c1 = substr( $str, $i,     1 ) || "";
+            my $c2 = substr( $str, $i + 1, 1 ) || "";
+
+           #printf("Saving %06o to %s\n", (ord($c1) << 9 ) | ord($c2), addr($addr));
+            $Mem[ $addr++ ] = ( ord($c1) << 9 ) | ord($c2);
+        }
+    }
+}
+
+### Load a namelist file
+sub load_names {
+    my $filename = shift;
+    open( my $IN, "<", $filename ) || die("Unable to open $filename: $!\n");
+    while (<$IN>) {
+	chomp;
+        if ($_ =~ m{([a-z0-9.]+)\s+([0-7]+)}) {
+	    my $i = oct($2);
+	    $Name2Addr{$1} = $i;
+	    $Addr2Name{$i} = $1;
+	}
+    }
+    close ($IN);
+}
+
+### Format an address
+sub addr {
+    my $addr = shift;
+    my $oct = sprintf("%06o", $addr);
+    if (%Addr2Name) {
+	return "$oct ($Addr2Name{$addr})" if ($Addr2Name{$addr});
+	# XXX keep Addr2Name as a sorted array?
+	# prefer after to before
+	for (my $epsilon = 1; $epsilon <= EPSILON; $epsilon++) {
+	    my $n = $Addr2Name{$addr-$epsilon};
+	    return "$oct ($n+$epsilon)" if (defined($n));
+	}
+	for (my $epsilon = 1; $epsilon <= EPSILON; $epsilon++) {
+	    my $n = $Addr2Name{$addr+$epsilon};
+	    return "$oct ($n-$epsilon)" if (defined($n));
+	}
+    }
+    return $oct;
+}
+
+### convert string (symbol or octal) to address
+sub lookup {
+    my $x = shift;
+    return oct($x) if ($x =~ m/^[0-7]+$/);
+    return $Name2Addr{$x} if (defined($Name2Addr{$x}));
+    return 0;
+}
+
+### Simulate the machine code loaded into memory
+sub simulate {
+
+    # List of opcodes that we can simulate
+    my %Oplist = (
+        oct("000") => \&cal,
+        oct("004") => \&dac,
+        oct("010") => \&jms,
+        oct("014") => \&dzm,
+        oct("020") => \&lac,
+        oct("030") => \&add,
+        oct("024") => \&xor,
+        oct("034") => \&tad,
+        oct("044") => \&isz,
+        oct("050") => \&and,
+        oct("054") => \&sad,
+        oct("060") => \&jmp,
+        oct("064") => \&eae,
+        oct("074") => \&opr,
+    );
+
+    # List of opcodes that DON'T auto-increment
+    # locations 10-17 when we have the indirect bit
+    my %NoIncr = (
+        oct("000") => 1,    # cal
+        oct("064") => 1,    # eae
+        oct("074") => 1     # opr
+    );
+
+    # Loop indefinitely
+    while (1) {
+
+        # Get the instruction pointed to by PC and decode it
+	# Also do code coverage
+        my $instruction = $Mem[$PC]; $CC[$PC]++;
+        my $opcode      = ( $instruction >> 12 ) & 074;
+        my $indirect    = ( $instruction >> 13 ) & 1;
+        my $addr        = $instruction & MAXADDR;
+
+        # Auto-increment locations 010 to 017 if $indirect
+        # and this is an instruction that does increment
+        if (   $indirect
+            && ( $addr >= 010 )
+            && ( $addr <= 017 )
+            && !defined( $NoIncr{$opcode} ) )
+        {
+            $Mem[$addr]++;
+            $Mem[$addr] &= MAXINT;
+        }
+
+        # Work out what any indirect address would be
+        my $indaddr = ($indirect) ? $Mem[$addr] & MAXADDR : $addr;
+
+        # If this is a breakpoint, stop now and get a user command
+        if ( defined( $Breakpoint{$PC} ) ) {
+            $singlestep = 1;
+            dprintf( "break at PC %s\n", addr($PC) );
+        }
+        get_user_command() if ($singlestep);
+        dprintf( "PC %-20.20s L.AC %d.%06o MQ %06o: ", addr($PC),
+		 ($LINK ? 1 : 0), $AC & 0777777, $MQ );
+
+       #dprintf("PC %06o: instr %06o, op %03o, in %o, addr %06o indaddr %06o\n",
+       #   $PC, $instruction, $opcode, $indirect, $addr, $indaddr );
+
+        # Simulate the instruction. Each subroutine updates the $PC
+        if ( defined( $Oplist{$opcode} ) ) {
+            $Oplist{$opcode}->( $instruction, $addr, $indaddr );
+        }
+        else {
+            printf( STDERR "Unknown instruction 0%06o at location %s\n",
+                $instruction, addr($PC) );
+            exit(1);
+        }
+    }
+}
+
+# Debug code: dump memory contents
+# Print from $start to $end.
+# Print empty locations if $yeszero
+sub dump_memory {
+    my ( $start, $end, $yeszero ) = @_;
+    foreach my $i ( $start .. $end ) {
+
+        # Convert the word into possibly two ASCII characters
+        my $c1 = ( $Mem[$i] >> 9 ) & 0777;
+        $c1 = ( $c1 < 0200 ) ? chr($c1) : " ";
+        my $c2 = $Mem[$i] & 0777;
+        $c2 = ( $c2 < 0200 ) ? chr($c2) : " ";
+        printf( STDERR "%06o: %06o %s%s\n", $i, $Mem[$i], $c1, $c2 )
+          if ( $yeszero || $Mem[$i] != 0 );
+    }
+}
+
+# Load AC
+sub lac {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "lac %s (value %06o) into AC\n", addr($indaddr), $Mem[$indaddr] );
+    $AC = $Mem[$indaddr];
+    $PC++;
+}
+
+# Deposit AC
+sub dac {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "dac AC (value %06o) into %s\n", $AC, addr($indaddr) );
+
+    # Catch writes below the process' memory range
+    if ($indaddr < 010000 && !($indaddr >= 010 && $indaddr <= 020) ) {
+      $singlestep = 1;
+      dprintf("(****WRITE TO LOW MEMORY****)\n");
+      dprintf( "break at PC %s\n", addr($PC) );
+    }
+    $Mem[$indaddr] = $AC;
+    $PC++;
+}
+
+# Add to AC, twos complement
+sub tad {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "tad AC (value %06o) with addr %s (%06o)\n",
+        $AC, addr($indaddr), $Mem[$indaddr] );
+    $AC   = $AC + $Mem[$indaddr];
+    $LINK = ( $LINK ^ $AC ) & LINKMASK;
+    $AC   = $AC & MAXINT;
+    $PC++;
+}
+
+# Add to AC, ones complement
+sub add {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "add AC (value %06o) with addr %s (%06o)\n",
+        $AC, addr($indaddr), $Mem[$indaddr] );
+
+    # This logic shamelessly borrowed from SimH
+    # https://github.com/simh/simh/blob/master/PDP18B/pdp18b_cpu.c
+    my $sum = $AC + $Mem[$indaddr];
+    if ( $sum > MAXINT ) {    # end around carry
+        $sum = ( $sum + 1 ) & MAXINT;
+    }
+    if ( ( ( ~$AC ^ $sum ) & ( $AC ^ $sum ) ) & SIGN ) {    # overflow?
+        $LINK = LINKMASK;                                   # set link
+    }
+    $AC = $sum;
+    $PC++;
+}
+
+# And AC and Y
+sub and {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "and AC (value %06o) with addr %s (%06o)\n",
+        $AC, addr($indaddr), $Mem[$indaddr] );
+    $AC &= $Mem[$indaddr];
+    $PC++;
+}
+
+# Xor AC and Y
+sub xor {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "xor %s (%06o)\n",
+	     addr($indaddr), $Mem[$indaddr] );
+    $AC ^= $Mem[$indaddr];
+    $PC++;
+}
+
+# Skip if AC different to Y
+sub sad {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "sad %s (%06o)\n", addr($indaddr), $Mem[$indaddr] );
+    $PC += ( $AC != $Mem[$indaddr] ) ? 2 : 1;
+}
+
+# Deposit zero in memory
+sub dzm {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "dzm %s\n", addr($indaddr) );
+    $Mem[$indaddr] = 0;
+    $PC++;
+}
+
+# Index and skip if zero
+sub isz {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "isz %s (value %06o)\n", addr($indaddr), $Mem[$indaddr] );
+    $Mem[$indaddr]++;
+    $Mem[$indaddr] &= MAXINT;
+    $PC += ( $Mem[$indaddr] == 0 ) ? 2 : 1;
+}
+
+# Jump
+sub jmp {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "jmp %s\n", addr($indaddr) );
+    $PC = $indaddr;
+}
+
+# Jump to subroutine
+sub jms {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    dprintf( "jms %s\n", addr($indaddr) );
+
+    # Save the LINK and current PC into the $indaddr location
+    $Mem[ $indaddr++ ] = $PC + 1 | ( ($LINK) ? 0400000 : 0 );
+    $PC = $indaddr;
+}
+
+# OPR instructions
+sub opr {
+    my ( $instruction, $addr, $indaddr ) = @_;
+
+    # hlt: halt simulation
+    if ( $instruction == 0740040 ) {
+        printf( STDERR "PC %s: program halted\n", addr($PC) );
+        dump_memory( 0, MAXADDR, 0 ) if ($debug);
+        exit(1);
+    }
+
+    # law: load word into AC
+    my $indirect = ( $instruction >> 13 ) & 1;
+    if ($indirect) {
+        dprintf( "law %06o into AC\n", $instruction );
+        $AC = $instruction;
+        $PC++;
+        return;
+    }
+
+    # List of skip opcode names for the next section
+    my @skipop = (
+        '',    'sma',     'sza',     'sza sma',
+        'snl', 'snl sma', 'snl sza', 'snl sza sma',
+        'skp', 'spa',     'sna',     'sna spa',
+        'szl', 'szl spa', 'szl sna', 'szl sna spa'
+    );
+
+    # This logic shamelessly borrowed from SimH
+    # https://github.com/simh/simh/blob/master/PDP18B/pdp18b_cpu.c
+    my $skip = 0;
+    my $i    = ( $instruction >> 6 ) & 017;    # decode IR<8:11>
+    dprintf( "%s", $skipop[$i] );
+
+    $skip = 1 if ( ( $i == 1 ) && ( $AC & SIGN ) != 0 );      # sma
+    $skip = 1 if ( ( $i == 2 ) && ( $AC & MAXINT ) == 0 );    # sza
+    $skip = 1
+      if ( ( $i == 3 )
+        && ( ( ( $AC & MAXINT ) == 0 ) || ( ( $AC & SIGN ) != 0 ) ) )
+      ;                                                       # sza | sma
+    $skip = 1 if ( ( $i == 4 ) && ($LINK) );                         # snl
+    $skip = 1 if ( ( $i == 5 ) && ( $LINK || ( $AC >= SIGN ) ) );    # snl | sma
+    $skip = 1 if ( ( $i == 6 ) && ( $LINK || ( $AC == 0 ) ) );       # snl | sza
+    $skip = 1
+      if ( ( $i == 7 )
+        && ( $LINK || ( $AC >= SIGN ) || ( $AC == 0 ) ) );    # snl | sza | sma
+    $skip = 1 if ( $i == 010 );                                     # skp
+    $skip = 1 if ( ( $i == 011 ) && ( ( $AC & SIGN ) == 0 ) );      # spa
+    $skip = 1 if ( ( $i == 012 ) && ( ( $AC & MAXINT ) != 0 ) );    # sna
+    $skip = 1
+      if ( ( $i == 013 )
+        && ( ( $AC & MAXINT ) != 0 )
+        && ( ( $AC & SIGN ) == 0 ) );                               # sna & spa
+    $skip = 1 if ( ( $i == 014 ) && ( $LINK == 0 ) );               # szl
+    $skip = 1
+      if ( ( $i == 015 ) && ( $LINK == 0 ) && ( $AC < SIGN ) );     # szl & spa
+    $skip = 1
+      if ( ( $i == 016 ) && ( $LINK == 0 ) && ( $AC != 0 ) );       # szl & sna
+    $skip = 1
+      if ( ( $i == 017 )
+        && ( $LINK == 0 )
+        && ( $AC < SIGN )
+        && ( $AC != 0 ) );    # szl & sna & spa
+
+    # Clear operations
+    if ( $instruction & 010000 ) {    # cla
+        dprintf(" cla");
+        $AC = 0;
+    }
+    if ( $instruction & 004000 ) {    # cll
+        dprintf(" cll");
+        $LINK = 0;
+    }
+    if ( $instruction & 000002 ) {    # cml
+        dprintf(" cml");
+        $LINK = ($LINK) ? 0 : LINKMASK;
+    }
+    if ( $instruction & 000001 ) {    # cma
+        dprintf(" cma");
+        $AC = ( $AC ^ MAXINT ) & MAXINT;
+    }
+
+    # Rotate instructions
+    $i = $instruction & 02030;
+
+    # Single rotate right
+    if ( $i == 020 ) {
+        dprintf(" rar");
+        my $newlink = ( $AC & 1 ) ? LINKMASK : 0;
+        $AC   = ( $LINK | $AC ) >> 1;
+        $LINK = $newlink;
+    }
+
+    # Double rotate right
+    if ( $i == 02020 ) {
+        dprintf(" rtr");
+        my $msb = ( $AC & 1 ) << 17;
+        my $newlink = ( $AC & 2 ) ? LINKMASK : 0;
+        $AC = ( ( $LINK | $AC ) >> 2 ) | $msb;
+        $LINK = $newlink;
+    }
+
+    # Single rotate left
+    if ( $i == 010 ) {
+        dprintf(" ral");
+        my $newlink = ( $AC & SIGN ) ? LINKMASK : 0;
+        my $lsb     = $LINK          ? 1        : 0;
+        $AC = ( ( $AC << 1 ) | $lsb ) & MAXINT;
+        $LINK = $newlink;
+    }
+
+    # Double rotate left
+    if ( $i == 02010 ) {
+        dprintf(" rtl");
+        my $newlink = ( $AC & 0200000 ) ? LINKMASK : 0;
+        my $lsb     = ( $AC & SIGN )    ? 1        : 0;
+        my $twolsb  = $LINK             ? 2        : 0;
+        $AC = ( ( $AC << 2 ) | $twolsb | $lsb ) & MAXINT;
+        $LINK = $newlink;
+    }
+
+    # Impossible left and right rotates: 02030 or 00030. Do nothing!
+
+    # Note: We didn't do the oas instruction above.
+    $PC += 1 + $skip;
+    dprintf("\n");
+    return;
+}
+
+# Extended arithmetic element instructions
+sub eae {
+    my ( $instruction, $addr, $indaddr ) = @_;
+    my $step        = $instruction & EAESTEP;
+    my $maskedinstr = $instruction & EAEIMASK;
+
+    if ( $instruction == 0653323 ) {    # idiv: integer division
+	my $divisor= $Mem[ $PC+1 ];
+        dprintf( "idiv %06o by %06o (decimal %d by %d)\n",
+				$AC, $divisor, $AC, $divisor );
+	# Prevent division by zero :-)
+	my $quotient = ($divisor) ? $AC / $divisor : 0;
+	my $remainder = ($divisor) ? $AC % $divisor : 0;
+	$MQ= $quotient;
+	$AC= $remainder;
+        $PC+=2;
+        return;
+    }
+    if ( $instruction == 0640323 ) {	# div: 36-bit unsigned integer division
+	my $divisor= $Mem[ $PC+1 ];
+        dprintf( "div MQ.AC %06o.%06o by %06o (decimal %d)\n",
+					$MQ, $AC, $divisor, $divisor );
+	# http://www.perlmonks.org/?node_id=718414 says that we won't
+	# lose accuracy before 2^53
+	my $dividend= ($MQ << 18) | $AC;
+	# Prevent division by zero :-)
+	my $quotient = ($divisor) ? $dividend / $divisor : 0;
+	my $remainder = ($divisor) ? $dividend % $divisor : 0;
+	$MQ= $quotient;
+	$AC= $remainder;
+        $PC+=2;
+        return;
+    }
+    if ( $maskedinstr == 0660500 ) {    # lrss: long right shift, signed
+                                        # We ignore the MQ as it's not
+                                        # used by any user-mode programs
+        dprintf( "lrss %06o AC step %d\n", $AC, $step );
+
+        # Save the AC's sign into LINK
+        my $newlink = ( $AC << 1 ) & LINKMASK;
+#        $AC = ( ( $LINK | $AC ) >> $step ) & MAXINT;
+        $AC = ( ( ($newlink * -1) | $AC ) >> $step ) & MAXINT;   # XXX Not sure if this is correct!?!?!
+        $LINK = $newlink;
+        $PC++;
+        return;
+    }
+    if ( $maskedinstr == 0660700 ) {    # alss: AC left shift, signed
+        dprintf( "alss step %d\n", $step );
+        $AC   = ( $AC << $step ) & MAXINT;
+        $LINK = ( $AC << 1 ) & LINKMASK;
+        $PC++;
+        return;
+    }
+    if ( $maskedinstr == 0660600 ) {    # llss: long left shift, signed
+	# Set the link to be the AC sign bit
+	$LINK= ($AC & SIGN) ? LINKMASK : 0;
+        dprintf( "llss step %d\n", $step );
+        foreach my $i ( 1 .. $step ) {
+            my $MQmsb = ( $MQ & SIGN ) ? 1 : 0;
+            $AC = ( ( $AC << 1 ) | $MQmsb ) & MAXINT;
+            $MQ = ( ( $MQ << 1 ) | ( ($LINK) ? 1 : 0 ) ) & MAXINT;
+        }
+        $PC++;
+        return;
+    }
+   					# lls: long left shift
+    if ( ($maskedinstr == 0640600) || ($maskedinstr == 0641600) ) {
+        dprintf( "lls step %d\n", $step );
+	# Clear AC if the 01000 bit is set
+	$AC=0 if ($maskedinstr == 0641600);
+        foreach my $i ( 1 .. $step ) {
+            my $MQmsb = ( $MQ & SIGN ) ? 1 : 0;
+            $AC = ( ( $AC << 1 ) | $MQmsb ) & MAXINT;
+            $MQ = ( ( $MQ << 1 ) | ( ($LINK) ? 1 : 0 ) ) & MAXINT;
+        }
+        $PC++;
+        return;
+    }
+    if ( $maskedinstr == 0640700 ) {    # als: AC left shift
+        dprintf( "als AC step %d\n", $step );
+        $AC = ( $AC << $step ) & MAXINT;
+        $PC++;
+        return;
+    }
+    if ( $instruction == 0652000 ) {    # lmq: load MC from AC
+        dprintf( "lmq AC %06o into MQ\n", $AC );
+        $MQ = $AC;
+        $PC++;
+        return;
+    }
+    if ( $instruction == 0641002 ) {    # lacq: load AC from MQ
+        dprintf( "lacq MQ %06o into AC\n", $MQ );
+        $AC = $MQ;
+        $PC++;
+        return;
+    }
+    if ( $instruction == 0640002 ) {    # lacq: OR AC with MQ
+        dprintf( "omq MQ %06o and AC %06o\n", $MQ, $AC );
+        $AC |= $MQ;
+        $PC++;
+        return;
+    }
+    if ( $instruction == 0653122 ) {    # mul: unsigned multiply
+        # This logic shamelessly borrowed from SimH
+        # https://github.com/simh/simh/blob/master/PDP18B/pdp18b_cpu.c
+	my $MB= $Mem[ $PC+1 ];
+    	my $eae_ac_sign;
+	dprintf("mul AC %06o by %06o (decimal %d by %d)\n", $AC, $MB, $AC, $MB);
+
+        if (($instruction & 0004000) && ($AC & SIGN)) { # IR<6> and minus?
+            $eae_ac_sign = $LINK; 			# set eae_ac_sign
+ 	} else {
+            $eae_ac_sign = 0; 				# if not, unsigned
+	}
+        $MQ = $MQ ^ MAXINT if ($eae_ac_sign);		# EAE AC sign? ~MQ
+	my $oldlink= $LINK;
+	$LINK = 0;					# Clear link
+
+	my $result= $AC * $MB;
+	$AC= ($result >> 18) & MAXINT;
+	$MQ= $result  & MAXINT;
+
+##	foreach my $SC (1 .. $instruction & 077) {	# Loop for SC times
+##            $AC = $AC + $MB
+##                if ($MQ & 1);                           # MQ<17>? add
+##            $MQ = ($MQ >> 1) | (($AC & 1) << 17);
+##            $AC = $AC >> 1;                         	# Shift AC'MQ right
+##	}
+        if ($eae_ac_sign ^ $oldlink) {              	# Result negative?
+            $AC = $AC ^ MAXINT;
+            $MQ = $MQ ^ MAXINT;
+        }
+
+        $PC+=2;
+        return;
+    }
+    printf( STDERR "PC %s: Unknown eae instruction %06o\n",
+	    addr($PC), $instruction );
+    exit(1);
+}
+
+# cal: used for system calls
+sub cal {
+    my ( $instruction, $addr, $indaddr ) = @_;
+
+    # Syscalls that we can simulate
+    my %Syscallist = (
+
+        # 1:       save
+        2 => \&sys_getuid,
+        3 => \&sys_open,
+        4 => \&sys_read,
+        5 => \&sys_write,
+        6 => \&sys_creat,
+        7 => \&sys_seek,
+        # 8        tell
+        9 => \&sys_close,
+        10 => \&sys_link,
+        11 => \&sys_unlink,
+        12 => \&sys_setuid,
+        13 => \&sys_rename,
+        14 => \&sys_exit,
+        15 => \&sys_time,
+        16 => \&sys_intrp,
+        17 => \&sys_chdir,
+        18 => \&sys_chmod,
+        19 => \&sys_chown,
+        # 20        badcal
+        # 21        syslog
+        # 22        badcal
+        # 23        capt
+        # 24        rele
+        25 => \&sys_status,
+        # 26    badcal
+        27 => \&sys_smes,
+        28 => \&sys_rmes,
+        29 => \&sys_fork,
+    );
+
+    # Simulate the syscall. Each syscall updates the $PC
+    if ( defined( $Syscallist{$addr} ) ) {
+        $Syscallist{$addr}->();
+    }
+    else {
+        printf( STDERR "PC %s: Unknown syscall %d\n", addr($PC), $addr );
+        exit(1);
+    }
+}
+
+# Exit system call
+sub sys_exit {
+    dprintf( "exit system call, pid %06o\n", $$ );
+    print_coverage() if ($coverage);
+    exit(0);
+}
+
+# Getuid system call
+sub sys_getuid {
+    $AC = $< & MAXINT;
+    # On PDP-7 Unix, the root user is user-id -1
+    $AC= MAXINT if ($AC==0);
+    dprintf( "getuid system call, uid %06o\n", $AC );
+    $PC += 1;
+    return;
+}
+
+# Setuid system call
+sub sys_setuid {
+
+    # For now, do nothing
+    dprintf("setuid system call\n");
+    $PC += 1;
+    return;
+}
+
+# Intrp system call
+sub sys_intrp {
+
+    # For now, do nothing
+    dprintf("intrp system call\n");
+    $PC += 1;
+    return;
+}
+
+# Fork system call
+sub sys_fork {
+
+    # Fork and get the child's process-id back, or zero if we are the child
+    my $pid = fork();
+    $AC = $pid & MAXINT;
+    dprintf( "fork, got id %06o\n", $AC );
+
+    # The parent returns back to PC+1, the child returns to PC+2
+    $PC += ($pid) ? 1 : 2;
+    return;
+}
+
+# shell depends on smes hanging while child process exists
+#	https://www.bell-labs.com/usr/dmr/www/hist.html
+#	The message facility was used as follows: the parent shell, after
+#	creating a process to execute a command, sent a message to the new
+#	process by smes; when the command terminated (assuming it did not
+#	try to read any messages) the shell's blocked smes call returned an
+#	error indication that the target process did not exist. Thus the
+#	shell's smes became, in effect, the equivalent of wait.
+sub sys_smes {
+    waitpid($AC,0);
+    dprintf("smes returning error\n");
+    $AC = -1;
+    $PC += 1;
+}
+
+# Rmes system call. We simply call wait and
+# return the process-id in AC
+sub sys_rmes {
+    my $pid = wait();
+    dprintf("rmes system call, got pid $pid\n");
+    $AC = $pid & MAXINT;
+    $PC += 1;
+    return;
+}
+
+# Close system call
+sub sys_close {
+
+    # AC is the file descriptor
+    my $fd = $AC;
+    dprintf( "close: closing fd %d\n", $fd );
+
+    # Bump up the PC
+    $PC += 1;
+
+    # That filehandle is not open, set an error -1 in octal
+    if ( !defined( $FD[$fd] ) ) {
+        dprintf("close: fd $fd is not open\n");
+        $AC = MAXINT;
+        return;
+    }
+    close( $FD[$fd] );
+    $FD[$fd]       = undef;
+    $ISBINARY[$fd] = 0;       # For next time
+    $AC            = 0;
+    return;
+}
+
+# Open something which could be a file or a directory
+# Convert directories into files. Return the file handle and
+# if the file is ASCII or binary.
+sub opensomething {
+    my ( $readorwrite, $filename ) = @_;
+    my $tempfile = "/tmp/a7out.$$";
+    my $FH;
+
+    # If this is not a directory, open it and return the FH
+    if ( !-d $filename ) {
+        open( $FH, $readorwrite, $filename ) || return (undef);
+
+	# Opened for writing, so for now this is not binary
+	return ( $FH, 0) if ($readorwrite eq ">");
+
+        # Determine if the file is pure ASCII or contains 18-bit
+        # words encoded in 24-bit groups. We test the msb of the
+        # first character in the file. If it's on then it's a
+        # binary file and not ASCII.
+        # XXX: This means that we have to seek back to the beginning,
+        # which may be a problem on things like stdin.
+        my $ch = getc($FH);
+        my $isbinary = ( defined($ch) && ( ord($ch) & 0x80 ) ) ? 1 : 0;
+        binmode($FH) if ($isbinary);
+        seek( $FH, 0, SEEK_SET );
+        return ( $FH, $isbinary );
+    }
+
+    # It's a directory. The on-disk format for this was:
+    #   d.i: .=.+1                   " inode number
+    #   d.name: .=.+4                " name (space padded)
+    #   d.uniq: .=.+1                " unique number from directory inode
+    #   followed by two unused words
+    # The code creates a temporary file and fills in the i-node numbers
+    # and space padded filenames from the directory. The file is closed
+    # opened read-only and unlinked, and the open filehandle is returned.
+    opendir( my $dh, $filename ) || return (undef);
+    open( $FH, ">", $tempfile ) || return (undef);
+    dprintf("Converting directory $filename\n");
+
+    my @list = sort( readdir($dh) );
+    foreach my $name (@list) {
+
+        # Get the file's i-node number and write it
+        my ( undef, $inode ) = stat($name);
+        print( $FH word2three($inode) );
+
+        # Convert the name into 8 characters, space padded
+        my $spaceword = sprintf( "%-8s", substr( $name, 0, 8 ) );
+
+        # Convert to four words and write each as three bytes
+        foreach my $word ( ascii2words($spaceword) ) {
+            print( $FH word2three($word) );
+        }
+
+        # Now write three zero words to pad to eight in total
+        print( $FH word2three(0) );
+        print( $FH word2three(0) );
+        print( $FH word2three(0) );
+    }
+    closedir($dh);
+    close($FH);
+    open( $FH, "<", $tempfile ) || return (undef);
+    binmode($FH);
+    #exit(0);
+    unlink($tempfile);
+    return ( $FH, 1 );
+}
+
+# Common code for creat and open
+sub creatopen {
+    my ( $filename, $readorwrite ) = @_;
+
+    # Open the file
+    my ( $FH, $isbinary ) = opensomething( $readorwrite, $filename );
+    if ($FH) {
+
+        # Find a place in the @FD array to store this filehandle.
+        # 99 is arbitrary
+        foreach my $fd ( 0 .. 99 ) {
+            if ( !defined( $FD[$fd] ) ) {
+                $FD[$fd]       = $FH;
+                $ISBINARY[$fd] = $isbinary;
+                $AC            = $fd;
+                last;
+            }
+        }
+    }
+    else {
+        # No filehandle, so it's an error
+        dprintf("open failed: $!\n");
+        $AC = MAXINT;
+    }
+}
+
+# Open system call
+sub sys_open {
+
+    # Open seems to have 2 arguments: PC+1 is a pointer to the filename.
+    # PC+2 seems to be 1 for write, 0 for read.
+    # Some programs seem to have a third argument always set to 0.
+    # AC is the opened fd on success, or -1 on error
+
+    # Get the start address of the string
+    # Convert this to a sensible ASCII filename
+    my $start    = $Mem[ $PC + 1 ];
+    my $filename = mem2arg($start);
+
+    # Choose to open read-only or write-only
+    my $readorwrite = ( $Mem[ $PC + 2 ] ) ? ">" : "<";
+    dprintf( "open: base %06o, %s file %s\n", $start, $readorwrite, $filename );
+
+    # Bump up the PC
+    $PC += 3;
+
+    # Now open the file and return
+    creatopen( $filename, $readorwrite );
+}
+
+# Creat system call
+sub sys_creat {
+
+    # Creat seems to have 1 argument: PC+1 is a pointer to the filename.
+    # Some programs seem to have a second argument always set to 0.
+    # AC is the opened fd on success, or -1 on error
+
+    # Get the start address of the string
+    my $start = $Mem[ $PC + 1 ];
+
+    # Convert this to a sensible ASCII filename
+    my $filename = mem2arg($start);
+
+    # Choose to open write-only
+    my $readorwrite = ">";
+    dprintf( "creat: base %06o, file %s\n", $start, $filename );
+
+    # Bump up the PC
+    $PC += 2;
+
+    # Now open the file and return
+    creatopen( $filename, $readorwrite );
+}
+
+# Read system call
+sub sys_read {
+
+    # Read seems to have arguments: AC is the file descriptor, PC+1 is
+    # the pointer to the buffer and PC+2 is the number of words to read.
+    # Return the number of words read in AC on success, or -1 on error.
+
+    # Get the file descriptor, start address and end address
+    my $fd    = $AC;
+    my $start = $Mem[ $PC + 1 ];
+    my $count = $Mem[ $PC + 2 ];
+    my $end   = ( $start + $count - 1 ) & MAXADDR;
+    die("sys_read: bad start/end addresses $start $end\n") if ( $end < $start );
+    dprintf( "read: %d words into %s from fd %d\n", $count, addr($start), $fd );
+
+    # Bump up the PC
+    $PC += 3;
+
+    # That filehandle is not open, set an error -1 in octal
+    if ( !defined( $FD[$fd] ) ) {
+        dprintf("read: fd $fd is not open\n");
+        $AC = MAXINT;
+        return;
+    }
+
+    # Read each word in
+    my $FH = $FD[$fd];
+    $count = 0;
+    if (-t $FH) {		# TTY?
+	my $char = getc($FH);	# use Term::ReadKey for 'cbreak' mode??
+	if (defined($char)) {
+	    $Mem[$start] = ord($char) << 9; # only ever returns one char
+	    $AC = 1;
+	}
+	else {
+	    $AC = 0;		# EOF
+	}
+	return;
+    }
+    foreach my $addr ( $start .. $end ) {
+
+        if ( $ISBINARY[$fd] ) {
+            # Convert three bytes into one 18-bit word
+	    my $result = read_word($FH);
+	    last if ($result == -1);
+            $Mem[$addr] = $result;
+	    $count++;
+        }
+        else {
+            # Convert two ASCII characters into one 18-bit word
+            my $c1 = getc($FH);
+            last if ( !defined($c1) );    # No character, leave the loop
+	    my $word = ord($c1) << 9;
+	    my $c2 = getc($FH);
+	    $word |= ord($c2) if (defined($c2));
+            $Mem[$addr] = $word;
+	    $count++;
+        } # ascii
+    }
+
+    # No error
+    $AC = $count;
+    return;
+}
+
+# Write system call
+sub sys_write {
+
+    # Write seems to have arguments: AC is the file descriptor, PC+1 is
+    # the pointer to the buffer and PC+2 is the number of words to write
+
+    # Get the file descriptor, start address and end address
+    my $fd    = $AC;
+    my $start = $Mem[ $PC + 1 ];
+    my $count = $Mem[ $PC + 2 ];
+    my $end   = ( $start + $count - 1 ) & MAXADDR;
+    die("sys_write: bad start/end addresses $start $end\n")
+      if ( $end < $start );
+    dprintf( "write: %d words from %s to fd %d\n", $count, addr($start), $fd );
+
+    # Bump up the PC
+    $PC += 3;
+
+    # That filehandle is not open, set an error -1 in octal
+    if ( !defined( $FD[$fd] ) ) {
+        dprintf("write: fd $fd is not open\n");
+        $AC = MAXINT;
+        return;
+    }
+
+    # Write each word out either in binary or in ASCII
+    my $FH = $FD[$fd];
+    foreach my $addr ( $start .. $end ) {
+	# First see if any "non-ASCII" bits are set in the word.
+	# If so, then this is a binary file
+	my $word= $Mem[$addr];
+	$ISBINARY[$fd]=1 if ($word & 0600600);
+
+	if ($ISBINARY[$fd]) {
+	    print( $FH word2three($word) );
+	} else {
+            print( $FH word2ascii($word) );
+	}
+    }
+
+    # No error
+    $AC = 0;
+    return;
+}
+
+# Chmod system call
+sub sys_chmod {
+
+    # Chmod gets the permission bits in AC and a pointer
+    # to the file's name in PC+1. s2.s has these instruction for chmod:
+    # 	lac u.ac; and o17    		so only the lowest 4
+    # bits are the permission bits that can be set.
+    # I'm going to guess these (from v1 chmod manual):
+    #   01 write for non-owner
+    #   02 read for non-owner
+    #   04 write for owner
+    #   10 read for owner
+    my $mode = 0;
+    $mode |= 0002 if ( $AC & 01 );
+    $mode |= 0004 if ( $AC & 02 );
+    $mode |= 0220 if ( $AC & 04 );
+    $mode |= 0440 if ( $AC & 010 );
+
+    my $start    = $Mem[ $PC + 1 ];
+    my $filename = mem2arg($start);
+    dprintf( "chmod %06o file %s\n", $mode, $filename );
+
+    # Do the chmod on the file
+    my $result = chmod( $mode, $filename );
+
+    # Set AC to -1 if no files were changed, else 0
+    $AC = ( $result == 0 ) ? MAXINT : 0;
+    $PC += 2;
+    return;
+}
+
+# Chown system call
+sub sys_chown {
+
+    # Chown gets the numeric user-id in AC and a pointer
+    # to the file's name in PC+1.
+    # Get the start address of the string
+    # Convert this to a sensible ASCII filename
+    my $start    = $Mem[ $PC + 1 ];
+    my $filename = mem2arg($start);
+    dprintf( "chown file %s to uid %06o\n", $filename, $AC );
+
+    # Do the chown, leave group-id untouched. Get number of files changed
+    my $result = chown( $AC, -1, $filename );
+
+    # Set AC to -1 if no files were changed, else 0
+    $AC = ( $result == 0 ) ? MAXINT : 0;
+    $PC += 2;
+    return;
+}
+
+# Chdir system call
+sub sys_chdir {
+
+    # Chdir gets the directory name in PC+1
+    # Return 0 on success, -1 on error
+    # Convert this to a sensible ASCII filename
+    my $start    = $Mem[ $PC + 1 ];
+    my $filename = mem2arg($start);
+    dprintf( "chdir %s\n", $filename );
+
+    # Bump up the PC
+    $PC += 2;
+
+    # Do nothing on chdir to "dd"
+    return (0) if ( $filename eq "dd" );
+
+    # Do the chdir
+    return ( chdir($filename) ? 0 : MAXINT );
+}
+
+# Unlink system call
+sub sys_unlink {
+
+    # Unlink gets the file name in PC+1
+    # Return 0 on success, -1 on error
+    # Convert this to a sensible ASCII filename
+    my $start    = $Mem[ $PC + 1 ];
+    my $filename = mem2arg($start);
+    dprintf( "unlink %s\n", $filename );
+
+    # Bump up the PC and do the unlink
+    $PC += 2;
+    return ( unlink($filename) ? 0 : MAXINT );
+}
+
+# Time system call
+sub sys_time {
+
+    # Dennis' draft says: The call   sys time   returns in
+    # the AC and MQ registers the number of sixtieths of
+    # a second since the start of the current year.
+
+    # Get two Datetime objects set to now
+    my $dt        = DateTime->now;
+    my $yearstart = DateTime->now;
+
+    # Set one object back to the beginning of the year
+    $yearstart->set( month  => 1 );
+    $yearstart->set( day    => 1 );
+    $yearstart->set( hour   => 0 );
+    $yearstart->set( minute => 0 );
+    $yearstart->set( second => 0 );
+
+    # Get the duration in sixtieths of a second
+    my $duration  = $dt->subtract_datetime_absolute($yearstart);
+    my $sixtieths = $duration->seconds() * 60;
+
+    # Set MQ to the high 18 bits and AC to the low 18 bits
+    $MQ = $sixtieths >> 18;
+    $AC = $sixtieths & 0777777;
+    dprintf( "time %06o %06o, %d sixtieths\n", $MQ, $AC, $sixtieths );
+    $PC += 1;
+    return;
+}
+
+# Status system call
+sub sys_status {
+
+    # AC holds the pointer to the stat buffer
+    # PC+1 is the directory holding the entry
+    # PC+2 is the directory entry we want to stat.
+    # The statbuf is:
+    #   word 0:    permission bits
+    #   words 1-7: disk block pointers
+    #   word 8:    user-id
+    #   word 9:    number of links
+    #   word 10:   size in words
+    #   word 11:   uniq, I have no idea what this is.
+    #   word 12:   i-number.
+    # The permission bits are:
+    #   200000  large file, bigger than 4096 words
+    #   000020  directory
+    #   000010  owner read
+    #   000004  owner write
+    #   000002  user write
+    #   000001  user write
+
+    # Get the directory and file names
+    # Convert this to a sensible ASCII filename
+    my $dirname = mem2arg($Mem[ $PC + 1 ]);
+    my $filename = mem2arg($Mem[ $PC + 2 ]);
+    dprintf( "status file %s/%s statbuf %06o\n", $dirname, $filename, $AC );
+
+    # Get the file's details
+    my ( undef, $ino, $mode, $nlink, $uid, undef, undef, $size ) =
+      stat("$dirname/$filename");
+
+    # Set up the statbuf if we got a result
+    if ($nlink) {
+        $Mem[ $AC + 8 ]  = $uid & MAXINT;
+        $Mem[ $AC + 9 ]  = (-$nlink) & MAXINT;
+        $Mem[ $AC + 10 ] = $size & MAXINT;    # Yes, I know, not words
+        $Mem[ $AC + 12 ] = $ino & MAXINT;
+
+        my $perms = 0;
+        $perms = 01 if ( $mode & 02 );        # World writable
+        $perms |= 02      if ( $mode & 04 );      # World readable
+        $perms |= 04      if ( $mode & 0200 );    # Owner writable
+        $perms |= 010     if ( $mode & 0400 );    # Owner readable
+        $perms |= 020     if ( -d $filename );    # Directory
+        $perms |= 0200000 if ( $size > 4096 );    # Large file
+        $Mem[$AC] = $perms;
+
+        # Set AC to zero as we got something, else return -1
+        $AC = 0;
+    }
+    else {
+        $AC = MAXINT;
+    }
+
+    $PC += 3;
+    return;
+}
+
+# Seek syscall
+sub sys_seek {
+    # Seek takes three arguments: AC is the fd, PC+1 is a signed count
+    # and PC+2 is how to seek: 0=from start, 1=from curptr, 2=from end
+    # of file. Return AC=0 if OK, -1 on error.
+    my $fd= $AC;
+    my $FH= $FD[$fd];
+    my $offset= $Mem[ $PC + 1 ];
+    # XXX For now, we always do SEEK_SET.
+
+    # If it's a binary file, we have to seek 3 bytes for every word,
+    # but for an ASCII file that's 2 bytes per word.
+    $offset *= ($ISBINARY[$fd]) ? 3 : 2;
+    my $result= seek($FH, $offset, SEEK_SET);
+
+    # Set the AC result
+    $AC= ($result)? 0: MAXINT;
+    $PC += 3;
+    return;
+}
+
+# Rename syscall
+sub sys_rename {
+    # Rename takes two arguments: PC+1 is the current filename and
+    # PC+2 is the new filename. Returns AC=0 on success, AC=-1 on error.
+    #
+    my $oldname = mem2arg($Mem[$PC+1]);
+    my $newname = mem2arg($Mem[$PC+2]);
+    dprintf( "rename file %s to %s\n", $oldname, $newname );
+    my $result= rename($oldname, $newname);
+
+    # Set the AC result
+    $AC= ($result)? 0: MAXINT;
+    $PC += 3;
+    return;
+}
+
+# Link syscall
+sub sys_link {
+    # Link takes two arguments: PC+1 is the current filename and
+    # PC+2 is the new filename. Returns AC=0 on success, AC=-1 on error.
+    # Yes, this is not strictly what PDP-7 Unix would have done.
+    #
+    my $oldname = mem2arg($Mem[$PC+1]);
+    my $newname = mem2arg($Mem[$PC+2]);
+    dprintf( "link file %s to %s\n", $oldname, $newname );
+    my $result= link($oldname, $newname);
+
+    # Set the AC result
+    $AC= ($result)? 0: MAXINT;
+    $PC += 3;
+    return;
+}
+
+# Convert an 18-bit word into a scalar which has three sixbit
+# values in three bytes. Set the msb in the first byte
+sub word2three {
+    my $val = shift;
+
+    my $b1 = ( ( $val >> 12 ) & 077 ) | 0x80;
+    my $b2 = ( $val >> 6 ) & 077;
+    my $b3 = $val & 077;
+    return ( pack( "CCC", $b1, $b2, $b3 ) );
+}
+
+# Convert an ASCII string into an array of 18-bit word values
+# where two characters are packed into each word. Put NUL in
+# if the string has an odd number of characters. Return the array
+sub ascii2words {
+    my $str = shift;
+    my @words;
+    for ( my $i = 0 ; $i < length($str) ; $i += 2 ) {
+        my $c1 = substr( $str, $i,     1 ) || "\0";
+        my $c2 = substr( $str, $i + 1, 1 ) || "\0";
+
+        push( @words, ( ord($c1) << 9 ) | ord($c2) );
+    }
+    return (@words);
+}
+
+# Convert an 18-bit word into two ASCII characters and return them.
+# Don't return NUL characters
+sub word2ascii {
+    my $word   = shift;
+    my $c1     = ( $word >> 9 ) & 0177;
+    my $c2     = $word & 0177;
+    my $result = "";
+    if (($c1 >= 1) && ($c1 <= 126)) { $result .= chr($c1); }
+    if (($c2 >= 1) && ($c2 <= 126)) { $result .= chr($c2); }
+    return ($result);
+}
+
+# Given the address of a four word argument string in
+# memory, return a copy of the string in ASCII format.
+# Lose any trailing spaces as well.
+sub mem2arg {
+    my $addr   = shift;
+    my $result = "";
+
+    $addr &= MAXADDR;
+    foreach ( 1 .. 4 ) {
+
+        # Stop if the address leave the 8K word address space
+        last if ( $addr > MAXADDR );
+        my $word = $Mem[ $addr++ ];
+        my $c1   = ( $word >> 9 ) & 0177;
+        my $c2   = $word & 0177;
+        $result .= chr($c1) . chr($c2);
+    }
+    $result =~ s{ *$}{};
+    return ($result);
+}
+
+# Print out debug messages
+sub dprintf {
+    printf( STDERR @_ ) if ( ($debug) || ($singlestep) );
+}
+
+# Get one or more commands from the user and execute them
+sub get_user_command {
+    my %Cmdlist = (
+        'b'        => \&cmd_setbreak,
+        'break'    => \&cmd_setbreak,
+        'd'        => \&cmd_dump,
+        'dump'     => \&cmd_dump,
+        'db'       => \&cmd_delbreak,
+        'del'      => \&cmd_delbreak,
+        'delete'   => \&cmd_delbreak,
+        '?'        => \&cmd_help,
+        'h'        => \&cmd_help,
+        'help'     => \&cmd_help,
+        's'        => \&cmd_step,
+        'l'        => \&cmd_listbreak,
+        'list'     => \&cmd_listbreak,
+        'step'     => \&cmd_step,
+        'q'        => \&cmd_exit,
+        'x'        => \&cmd_exit,
+        'quit'     => \&cmd_exit,
+        'exit'     => \&cmd_exit,
+        'c'        => \&cmd_continue,
+        'continue' => \&cmd_continue,
+        'r'        => \&cmd_showregs,
+        'regs'     => \&cmd_showregs,
+    );
+
+    # Loop until we get a leave result
+    while (1) {
+
+        # Get a command from the user
+        # and split into command, start and end addresses.
+        # Convert addresses from octal
+        print("a7out> ");
+        chomp( my $line = <STDIN> );
+        my ( $cmd, $addr, $endaddr ) = split( /\s+/, $line );
+
+        $addr    = lookup($addr)    if ( defined($addr) );
+        $endaddr = lookup($endaddr) if ( defined($endaddr) );
+
+        # Run the command
+        my $leave;
+        if ( defined($cmd) && defined( $Cmdlist{$cmd} ) ) {
+            $leave = $Cmdlist{$cmd}->( $addr, $endaddr );
+        }
+        else {
+            printf( "%s: unknown command\n", $cmd || "" );
+            cmd_help();
+        }
+        return if ($leave);
+    }
+}
+
+# Exit the program
+sub cmd_exit {
+    exit(0);
+}
+
+# Continue by disabling single-step
+# and break out of the command loop
+sub cmd_continue {
+    $singlestep = 0;
+    return (1);
+}
+
+# Step by staying in single-step
+# but break out of the command loop
+sub cmd_step {
+    return (1);
+}
+
+# Set a breakpoint
+sub cmd_setbreak {
+    my $addr = shift;
+    $Breakpoint{$addr} = 1;
+    return (0);
+}
+
+# Delete a breakpoint
+sub cmd_delbreak {
+    my $addr = shift;
+    delete( $Breakpoint{$addr} );
+    printf( "Delete breakpoint %06o\n", $addr );
+    return (0);
+}
+
+sub cmd_help {
+    print("  [b]reak <octal>             set a breakpoint\n");
+    print("  [c]ontinue                  leave single-step and continue\n");
+    print("  [d]ump [<octal>] [<octal>]  dump addresses in range\n");
+    print("  db <octal>                  delete a breakpoint\n");
+    print("  [del]ete <octal>            delete a breakpoint\n");
+    print("  [l]ist                      list breakpoints\n");
+    print("  [r]egs                      print PC, LINK, AC and MQ regs\n");
+    print("  [s]tep                      single-step next instruction\n");
+    print("  ?, h, help                  print this help list\n");
+    print("  e[x]it, [q]uit              exit the program\n");
+    return (0);
+}
+
+sub cmd_showregs {
+    my $link = ($LINK) ? 1 : 0;
+    printf( "PC: %s, L.AC %d.%06o, MQ: %06o\n", addr($PC), $link, $AC, $MQ );
+    return (0);
+}
+
+sub cmd_dump {
+    my ( $start, $end ) = @_;
+
+    # No arguments, so dump everything but not empty locations
+    if ( !defined($start) ) {
+        dump_memory( 0, MAXADDR, 0 );
+        return (0);
+    }
+
+    # Dump a limited range
+    $end = $start if ( !defined($end) );
+    dump_memory( $start, $end, 1 );
+    return (0);
+}
+
+sub cmd_listbreak {
+    print("Breakpoints:\n");
+    foreach my $addr ( sort( keys(%Breakpoint) ) ) {
+        printf( "  %06o\n", $addr );
+    }
+    return (0);
+}
