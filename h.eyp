@@ -396,10 +396,12 @@ relational_expression:
 	{
 	  # Use sad if rhs exists
 	  if (defined($rhs)) {
+	    my $third= new_label();
 	    lac($lhs);
 	    push(@$Line, ['sad', $rhs->[0], $rhs->[1] ]);
-            push(@$Line, ["  jmp $ifstack[-1]->[0]"]);
+            push(@$Line, ["  jmp $third"]);
             push(@$Line, ["jmp $ifstack[-1]->[1]"]);
+            push(@$Line, ["$third:"]);
 	  }
 	}
 ;
@@ -422,8 +424,8 @@ labeled_statement:
       statement
 ;
 assignment_statement:
-    lvalue_expression.l '=' bit_expression ';'
-	{ push(@$Line, ['dac', $l->[0], $l->[1] ]); }
+    lvalue_expression.l '=' bit_expression.e ';'
+	{ lac($e); push(@$Line, ['dac', $l->[0], $l->[1] ]); }
 ;
 selection_statement:
       if_head %prec WEAK
@@ -444,7 +446,19 @@ if_head:
       statement 
 ;
 iteration_statement:
-      WHILE '(' expression ')' statement
+      WHILE
+        { # Generate start and end labels for this loop
+          my $start= new_label();
+          my $end= new_label();
+          push(@ifstack, [ $start, $end ]);
+          push(@$Line, ["$start:"]);
+        }
+      '(' expression ')'
+        { push(@$Line, ["$ifstack[-1]->[0]:"]); }
+      statement
+        { push(@$Line, ["jmp $ifstack[-1]->[0]"]);
+          push(@$Line, ["$ifstack[-1]->[1]:"]);
+	}
     | DO statement WHILE '(' expression ')' ';'
 ;
 jump_statement:
