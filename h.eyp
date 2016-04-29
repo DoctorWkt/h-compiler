@@ -383,8 +383,25 @@ relational_expression:
     | relational_expression '>' bit_expression
     | relational_expression LE_OP bit_expression
     | relational_expression GE_OP bit_expression
-    | relational_expression EQ_OP bit_expression
-    | relational_expression NE_OP bit_expression 
+    | relational_expression.lhs EQ_OP bit_expression.rhs
+	{
+	  # Use sad if rhs exists
+	  if (defined($rhs)) {
+	    lac($lhs);
+	    push(@$Line, ['sad', $rhs->[0], $rhs->[1] ]);
+            push(@$Line, ["  jmp $ifstack[-1]->[1]"]);
+	  }
+	}
+    | relational_expression.lhs NE_OP bit_expression.rhs
+	{
+	  # Use sad if rhs exists
+	  if (defined($rhs)) {
+	    lac($lhs);
+	    push(@$Line, ['sad', $rhs->[0], $rhs->[1] ]);
+            push(@$Line, ["  jmp $ifstack[-1]->[0]"]);
+            push(@$Line, ["jmp $ifstack[-1]->[1]"]);
+	  }
+	}
 ;
 expression:
       relational_expression 
@@ -410,10 +427,21 @@ assignment_statement:
 ;
 selection_statement:
       if_head %prec WEAK
+        { push(@$Line, ["$ifstack[-1]->[1]:"]);
+          pop(@ifstack);
+        }
     | if_head ELSE statement
 ;
 if_head:
-      IF '(' expression ')' statement 
+      IF
+        { # Generate false and end labels for this IF
+          my $false= new_label();
+          my $end= new_label();
+          push(@ifstack, [ $false, $end ]);
+        }
+      '(' expression ')'
+        { push(@$Line, ["$ifstack[-1]->[0]:"]); }
+      statement 
 ;
 iteration_statement:
       WHILE '(' expression ')' statement
