@@ -6,11 +6,14 @@ h.pm: h.eyp
 hello.s: hello.h h.pm
 	./h.pm hello.h
 
-hello: hello.s
-	./as7 -o hello hello.s
+hello: hello.s hrt.s
+	./as7 -o hello hello.s hrt.s
 
 debug: hello
 	./a7out -b 10000 hello
+
+run: hello
+	./a7out hello
 
 clean:
 	rm -f h.pm hello.s hello
