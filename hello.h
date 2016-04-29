@@ -1,10 +1,16 @@
+int fred(int a, int b)
+{
+  return(a + b);
+}
+
 void main()
 {
   int x;
-  int end=11;
-  for (x=1; x != end; x++) {
-    printn(x);
-    if (x == 4) 
-      printn(400);
-  }
+  x= fred(4, 5);
+  printn(x);
+  x= fred(2, 6);
+  printn(x);
+  x= fred(1, 1);
+  printn(x);
 }
+
