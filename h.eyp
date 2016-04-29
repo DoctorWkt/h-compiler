@@ -19,11 +19,13 @@ my $Basename;        # Basename of both files
 my @TokenQueue;      # Stack of tokens not yet read
 my $incomment;       # Are we in a multi-line comment?
 my $linenumber;      # What line number we are on
-my @branchop;        # How to branch based on the last bool expression
-		     # [0] is to branch out, [1] is to branch back
 my @Constlist;       # List of constants in array initialisation
 my %Global;          # List of known global identifiers
-my %Local;           # List of known local identifiers
+my %Local;           # List of known per-function identifiers
+		     # ->{fnname}->{id}
+my %PPosn;
+my $last_functionid="";
+my $calledfn="";
 my %Const;
 my @FinalLine;       # Array of references to arrays which contain all
 		     # the generated assembly code lines
@@ -89,6 +91,30 @@ sub new_globalid
   }
 }
 
+my $nextpnum;
+sub new_localid
+{
+  my ($fn,$id)= @_;
+  Die("$fn: $id local already declared") if (defined($Local{$fn}{$id}));
+  $Local{$fn}{$id}=1;
+  $PPosn{$fn}[$nextpnum++]= $id;	# Save the param's position
+}
+
+# Given an identifier arrayref, see if this is a local or
+# a global. Return a local identifier ref or the original
+# but as an array, not as an arrayref.
+sub getid
+{
+  my $idref= shift;
+  return(undef) if (!defined($idref));
+  my ($id, $ind)= @$idref;
+  if (defined($Local{$last_functionid}{$id})) {
+    return("$last_functionid\_$id", $ind);
+  } else {
+    return("$id", $ind);
+  }
+}
+
 #### LABEL CODE
 my $label=0;
 my @loopstack;
@@ -104,7 +130,6 @@ sub new_label
 # Declare a new function. If definition is "real", this is a real function
 # definition, so save this in the %Function hash and create a label. If
 # it is just "proto", then save it as such and no label
-my $last_functionid="";
 sub new_functionid
 {
   my ($id, $definition)= @_;
@@ -114,6 +139,7 @@ sub new_functionid
   $Function{$id}=$definition;
   push(@$Line, [ "$id: 0" ]) if ($definition eq "real");
   $last_functionid=$id;
+  $nextpnum=0;		# params for this function start at 0
 }
 
 
@@ -153,7 +179,7 @@ sub lac
 {
   my $id= shift;
   return if (!defined($id));
-  push(@$Line, ['lac', $id->[0], $id->[1] ]);
+  push(@$Line, ['lac', getid($id) ]);
 }
 
 sub tempdac
@@ -239,8 +265,9 @@ function_definition:
 	{ new_functionid($f,'real'); }
       compound_statement
 	{ push(@$Line, ["jmp $f i"]); }
-    | function_declarator.f '(' parameter_list ')'
+    | function_declarator.f '('
 	{ new_functionid($f,'real'); }
+	parameter_list ')'
       compound_statement 
 	{ push(@$Line, ["jmp $f i"]); }
 ;
@@ -249,10 +276,11 @@ function_declarator:
 ;
 parameter_list:
       parameter_declaration
-    | parameter_list ',' parameter_declaration 
+    | parameter_list ',' parameter_declaration
 ;
 parameter_declaration:
-      type_declarator 
+      type_declarator.p 
+	{ new_localid($last_functionid, $p); }
 ;
 lvalue_expression:
       IDENTIFIER.i
@@ -263,27 +291,35 @@ lvalue_expression:
 function_expression:
       IDENTIFIER.f '(' ')'
 	{ push(@$Line, ["jms $f"]); }
-    | IDENTIFIER.f '(' argument_list ')' 
+    | IDENTIFIER.f '('
+	{ $nextpnum=0; $calledfn= $f; }
+      argument_list ')' 
 	{ push(@$Line, ["jms $f"]); }
 ;
 argument_list:
-      argument
-    | argument_list ',' argument 
+      argument.a
+	{ # Get the name of the function's param at this position
+	  my $pname= $PPosn{$calledfn}[$nextpnum++];
+	  lac($a); push(@$Line, [ 'dac', "$calledfn\_$pname" ]);
+	}
+    | argument_list ',' argument.a
+	{ # Get the name of the function's param at this position
+	  my $pname= $PPosn{$calledfn}[$nextpnum++];
+	  lac($a); push(@$Line, [ 'dac', "$calledfn\_$pname" ]);
+	}
 ;
 argument:
-      IDENTIFIER
-    | CONSTANT
-    | STRINGLITERAL
-;
-basic_expression:
       IDENTIFIER.i
 	{ [ $i, '' ]; }
-    | '*' IDENTIFIER.i
-	{ [ $i, 'i' ]; }
     | CONSTANT.c
 	{ new_const($c); $c= ($c < 0) ? [ "m$c", ''] : ["d$c", '']; }
     | STRINGLITERAL.s
 	{ [ $s, '' ]; }
+;
+basic_expression:
+      argument
+    | '*' IDENTIFIER.i
+	{ [ $i, 'i' ]; }
     | function_expression
     | '(' expression.e ')'
 ;
@@ -331,14 +367,14 @@ additive_expression:
     | additive_expression.lhs '+' multiplicative_expression.rhs
 	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['tad', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['tad', getid($rhs) ]);
 	  undef;
 	}
     | additive_expression.lhs '-' multiplicative_expression.rhs
 	{ $rhs= tempdac() if (!defined($rhs));
 	  lac($lhs);
   	  push(@$Line, ['cma']);
-  	  push(@$Line, ['tad', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['tad', getid($rhs) ]);
   	  push(@$Line, ['cma']);
 	  undef;
 	}
@@ -359,13 +395,13 @@ bit_expression:
     | bit_expression.lhs '&' shift_expression.rhs
 	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['and', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['and', getid($rhs) ]);
 	  undef;
 	}
     | bit_expression.lhs '^' shift_expression.rhs
 	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['xor', $rhs->[0], $rhs->[1] ]);
+  	  push(@$Line, ['xor', getid($rhs) ]);
 	  undef;
 	}
     | bit_expression.lhs '|' shift_expression.rhs
@@ -388,7 +424,7 @@ relational_expression:
 	  # Use sad if rhs exists
 	  if (defined($rhs)) {
 	    lac($lhs);
-	    push(@$Line, ['sad', $rhs->[0], $rhs->[1] ]);
+	    push(@$Line, ['sad', getid($rhs) ]);
             push(@$Line, ["  jmp $ifstack[-1]->[1]"]);
 	  }
 	}
@@ -398,7 +434,7 @@ relational_expression:
 	  if (defined($rhs)) {
 	    my $third= new_label();
 	    lac($lhs);
-	    push(@$Line, ['sad', $rhs->[0], $rhs->[1] ]);
+	    push(@$Line, ['sad', getid($rhs) ]);
             push(@$Line, ["  jmp $third"]);
             push(@$Line, ["jmp $ifstack[-1]->[1]"]);
             push(@$Line, ["$third:"]);
@@ -425,7 +461,7 @@ labeled_statement:
 ;
 assignment_statement:
     lvalue_expression.l '=' bit_expression.e ';'
-	{ lac($e); push(@$Line, ['dac', $l->[0], $l->[1] ]); }
+	{ lac($e); push(@$Line, [ 'dac', getid($l) ]); }
 ;
 selection_statement:
       if_head %prec WEAK
@@ -527,10 +563,10 @@ postop_statement:
 ;
 postop_expression:
       lvalue_expression.l INC_OP
-	{ push(@$Line, ['isz', $l->[0], $l->[1], '; opr' ]); }
+	{ push(@$Line, ['isz', getid($l) ]); }
     | lvalue_expression.l DEC_OP 
-	{ push(@$Line, ['-1', '; tad', $l->[0], $l->[1]]);
-	  push(@$Line, ['dac', $l->[0], $l->[1]]);
+	{ push(@$Line, ['-1', '; tad', getid($l) ]);
+	  push(@$Line, ['dac', getid($l) ]);
 	}
 ;
 declaration_list:
@@ -717,6 +753,13 @@ sub Run {
     # Print out constants
     foreach my $c (keys(%Const)) {
       print($OUT "$c: $Const{$c}\n");
+    }
+
+    # Print out local variables
+    foreach my $fn (keys(%Local)) {
+      foreach my $id (keys(%{ $Local{$fn}})) {
+        print($OUT "$fn\_$id: 0\n");
+      }
     }
 
     # Close the in/out files

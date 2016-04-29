@@ -4,13 +4,15 @@ int z = 8;
 int a;
 int b;
 
+int fred(int p, int q, int r)
+{
+  p= 3;
+  x= p + q + r;
+}
+
+
 void main()
 {
-fred:
-  a= y >> 3;
-  a++;
-  return;
-  goto fred;
-  a= y >> 3;
-  a--;
+  fred(x,y,z);
+  x = x + 3;
 }
