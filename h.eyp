@@ -23,7 +23,10 @@ my @Constlist;       # List of constants in array initialisation
 my %Global;          # List of known global identifiers
 my %Local;           # List of known per-function identifiers
 		     # ->{fnname}->{id}
-my %PPosn;
+my %PPosn= (
+    'putchar' => [ 'c' ],
+    'printn' => [ 'n' ],
+);
 my $last_functionid="";
 my $calledfn="";
 my %Const;
@@ -109,7 +112,7 @@ sub getid
   return(undef) if (!defined($idref));
   my ($id, $ind)= @$idref;
   if (defined($Local{$last_functionid}{$id})) {
-    return("$last_functionid\_$id", $ind);
+    return("$last_functionid.$id", $ind);
   } else {
     return("$id", $ind);
   }
@@ -300,12 +303,12 @@ argument_list:
       argument.a
 	{ # Get the name of the function's param at this position
 	  my $pname= $PPosn{$calledfn}[$nextpnum++];
-	  lac($a); push(@$Line, [ 'dac', "$calledfn\_$pname" ]);
+	  lac($a); push(@$Line, [ 'dac', "$calledfn.$pname" ]);
 	}
     | argument_list ',' argument.a
 	{ # Get the name of the function's param at this position
 	  my $pname= $PPosn{$calledfn}[$nextpnum++];
-	  lac($a); push(@$Line, [ 'dac', "$calledfn\_$pname" ]);
+	  lac($a); push(@$Line, [ 'dac', "$calledfn.$pname" ]);
 	}
 ;
 argument:
@@ -756,9 +759,9 @@ sub Run {
     }
 
     # Print out local variables
-    foreach my $fn (keys(%Local)) {
-      foreach my $id (keys(%{ $Local{$fn}})) {
-        print($OUT "$fn\_$id: 0\n");
+    foreach my $fn (keys(%PPosn)) {
+      foreach my $id (@{ $PPosn{$fn}}) {
+        print($OUT "$fn.$id: 0\n");
       }
     }
 
