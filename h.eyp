@@ -300,11 +300,11 @@ lvalue_expression:
 ;
 function_expression:
       IDENTIFIER.f '(' ')'
-	{ push(@$Line, ["jms $f"]); }
+	{ push(@$Line, ["jms $f"]); undef; }
     | IDENTIFIER.f '('
 	{ $nextpnum=0; $calledfn= $f; }
       argument_list ')' 
-	{ push(@$Line, ["jms $f"]); }
+	{ push(@$Line, ["jms $f"]); undef; }
 ;
 argument_list:
       argument.a
@@ -560,8 +560,8 @@ jump_statement:
     | BREAK ';'
     | RETURN ';'
 	{ push(@$Line, ["jmp $last_functionid i"]); }
-    | RETURN expression ';' 
-	{ push(@$Line, ["jmp $last_functionid i"]); }
+    | RETURN '(' expression.e ')' ';' 
+	{ lac($e); push(@$Line, ["jmp $last_functionid i"]); }
 ;
 compound_statement:
       '{' '}'
