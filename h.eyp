@@ -456,7 +456,7 @@ expression:
 ;
 statement:
       labeled_statement
-    | assignment_statement
+    | assignment_statement ';'
     | function_expression ';'
     | selection_statement
     | iteration_statement
@@ -470,7 +470,7 @@ labeled_statement:
       statement
 ;
 assignment_statement:
-    lvalue_expression.l '=' bit_expression.e ';'
+    lvalue_expression.l '=' bit_expression.e
 	{ lac($e); push(@$Line, [ 'dac', getid($l) ]); }
 ;
 selection_statement:
@@ -516,14 +516,14 @@ iteration_statement:
           push(@$Line, ["$ifstack[-1]->[1]:"]);
 	}
     | FOR
-      '(' assignment_statement
+      '(' assignment_statement ';'
         { # Generate start and end labels for this loop
           my $start= new_label();
           my $end= new_label();
           push(@ifstack, [ $start, $end ]);
           push(@$Line, ["$start:"]);
         }
-      expression
+      expression ';'
         { # Move all the current lines over to FinalLine
           # and empty $Line for the third statement
           push(@FinalLine, $Line); $Line= [];
@@ -546,7 +546,7 @@ third_for_expression:
           # Push the third statement code onto the Forstack
           push(@Forstack, $Line); $Line= [];
         }
-    | postop_statement
+    | postop_expression
         {
           # Push the third statement code onto the Forstack
           push(@Forstack, $Line); $Line= [];
