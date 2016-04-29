@@ -276,20 +276,16 @@ pointer:
       '*' 
 ;
 function_definition:
-      function_declarator.f '(' ')' ';'
-	{ new_functionid($f,'proto'); }
-    | function_declarator.f '(' ')'
-	{ new_functionid($f,'real'); }
-      compound_statement
-	{ push(@$Line, ["jmp $f i"]); }
-    | function_declarator.f '('
-	{ new_functionid($f,'real'); }
-	parameter_list ')'
-      compound_statement 
-	{ push(@$Line, ["jmp $f i"]); }
+      function_declarator ';'
+    | function_declarator compound_statement
+	{ push(@$Line, ["jmp $last_functionid i"]); }
 ;
 function_declarator:
-      type_declarator 
+      type_declarator.f '(' ')'
+	{ new_functionid($f,'real'); }
+    | type_declarator.f '('
+	{ new_functionid($f,'real'); }
+      parameter_list ')'
 ;
 parameter_list:
       parameter_declaration
