@@ -1,9 +1,7 @@
-int x;
-int end=11;
-
 void main()
 {
-  x=1;
+  int x=1;
+  int end=11;
   while (x != end) {
     printn(x);
     if (x == 4) 
