@@ -1,11 +1,10 @@
 void main()
 {
-  int x=1;
+  int x;
   int end=11;
-  while (x != end) {
+  for (x=1; x != end; x++) {
     printn(x);
     if (x == 4) 
       printn(400);
-    x++;
   }
 }
