@@ -225,9 +225,6 @@ global_declaration:
     | array_declaration
     | function_definition 
 ;
-# XXX Somehow I need to rationalise type_declarator
-# lvalue_expression and argument
-#
 local_declaration:
       type_declarator.p ';'
 	{ new_localid($last_functionid, $p); }
@@ -307,6 +304,7 @@ lvalue_expression:
 	{ [ $i, '' ]; }
     | '*' IDENTIFIER.i
 	{ [ $i, 'i' ]; }
+    | IDENTIFIER '[' bit_expression ']'
 ;
 function_expression:
       IDENTIFIER.f '(' ')'
@@ -341,7 +339,7 @@ basic_expression:
     | '*' IDENTIFIER.i
 	{ [ $i, 'i' ]; }
     | function_expression
-    | '(' expression.e ')'
+    | '(' bit_expression.e ')'
 ;
 multiplicative_expression:
       basic_expression
@@ -461,9 +459,6 @@ relational_expression:
 	  }
 	}
 ;
-expression:
-      relational_expression 
-;
 statement:
       labeled_statement
     | assignment_statement ';'
@@ -505,7 +500,7 @@ if_head:
           push(@ifstack, [ $false, $end ]);
 	  $lifref= \@ifstack;
         }
-      '(' expression ')' statement 
+      '(' relational_expression ')' statement 
 ;
 iteration_statement:
       WHILE
@@ -516,7 +511,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:\t\t\" WHILE start"]);
         }
-      '(' expression ')'
+      '(' relational_expression ')'
       statement
         { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
           push(@$Line, ["$loopstack[-1]->[0]:\t\t\" WHILE end"]);
@@ -530,7 +525,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:\t\t\" DO start"]);
         }
-      statement WHILE '(' expression ')' ';'
+      statement WHILE '(' relational_expression ')' ';'
         { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
           push(@$Line, ["$loopstack[-1]->[0]:\t\t\" DO end"]);
 	  pop(@loopstack);
@@ -544,7 +539,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:\t\t\" FOR start"]);
         }
-      expression ';'
+      relational_expression ';'
         { # Move all the current lines over to FinalLine
           # and empty $Line for the third statement
           push(@FinalLine, $Line); $Line= [];
@@ -584,7 +579,7 @@ jump_statement:
 	{ push(@$Line, ["jmp $loopstack[-1]->[0]\t\t\" BREAK"]); }
     | RETURN ';'
 	{ push(@$Line, ["jmp $last_functionid i"]); }
-    | RETURN '(' expression.e ')' ';' 
+    | RETURN '(' bit_expression.e ')' ';' 
 	{ lac($e); push(@$Line, ["jmp $last_functionid i"]); }
 ;
 compound_statement:
