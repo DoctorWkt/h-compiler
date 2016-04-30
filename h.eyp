@@ -108,18 +108,32 @@ sub new_localid
 
 # Given an identifier arrayref, see if this is a local or
 # a global. Return a local identifier ref or the original
-# but as an array, not as an arrayref.
+# but as a list, not as an arrayref.
 sub getid
 {
-  my $idref= shift;
+  my ($idref, $how)= @_;
   return(undef) if (!defined($idref));
-  my ($id, $ind)= @$idref;
-  $ind='' if ($ind eq 'array');
-  if (defined($Local{$last_functionid}{$id})) {
-    return("$last_functionid.$id", $ind);
-  } else {
-    return("$id", $ind);
+  my ($id, $ind, $offset)= @$idref;
+  $id= "$last_functionid.$id"
+		if (defined($Local{$last_functionid}{$id}));
+  if ($ind eq 'array') {
+    my ($offid, $offind) = @$offset;
+    Die("can't index an array more than once") if ($offind eq 'array');
+    ($offid, $offind)= getid($offset);
+    push(@$Line, [ "\t\t\t\" getid array $id, off $offid $offind" ]);
+
+    # If this isn't a lac, save the current AC
+    push(@$Line, ['dac .temp']) if ($how ne 'lac');
+
+    # Get the pointer to the array element into ptr2
+    # and then get back the saved AC
+    push(@$Line, ['lac', $id]);
+    push(@$Line, ['tad', $offid, $offind]);
+    push(@$Line, ['dac .ptr2']);
+    push(@$Line, ['lac .temp']) if ($how ne 'lac');
+    $id='.ptr2'; $ind='i';
   }
+  return($id, $ind);
 }
 
 #### LABEL CODE
@@ -188,30 +202,14 @@ sub lac
 {
   my $id= shift;
   return if (!defined($id));
-  if ($id->[1] eq 'array') {
-    lac($id->[2]);
-    push(@$Line, ['tad', getid($id) ]);
-    push(@$Line, ['dac .ptr' ]);
-    push(@$Line, ['lac .ptr i' ]);
-  } else {
-    push(@$Line, ['lac', getid($id)]);
-  }
+  push(@$Line, ['lac', getid($id, 'lac')]);
 }
 
 sub dac
 {
   my $id= shift;
   return if (!defined($id));
-  if ($id->[1] eq 'array') {
-    push(@$Line, ['dac .temp' ]);
-    lac($id->[2]);
-    push(@$Line, ['tad', getid($id) ]);
-    push(@$Line, ['dac .ptr' ]);
-    push(@$Line, ['lac .temp' ]);
-    push(@$Line, ['dac .ptr i' ]);
-  } else {
-    push(@$Line, ['dac', getid($id)]);
-  }
+  push(@$Line, ['dac', getid($id, 'dac')]);
 }
 
 sub tempdac
@@ -404,14 +402,14 @@ additive_expression:
     | additive_expression.lhs '+' multiplicative_expression.rhs
 	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['tad', getid($rhs) ]);
+  	  push(@$Line, ['tad', getid($rhs, 'rhs'),"\t\t\" add" ]);
 	  undef;
 	}
     | additive_expression.lhs '-' multiplicative_expression.rhs
 	{ $rhs= tempdac() if (!defined($rhs));
 	  lac($lhs);
   	  push(@$Line, ['cma']);
-  	  push(@$Line, ['tad', getid($rhs) ]);
+  	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
   	  push(@$Line, ['cma']);
 	  undef;
 	}
@@ -432,13 +430,13 @@ bit_expression:
     | bit_expression.lhs '&' shift_expression.rhs
 	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['and', getid($rhs) ]);
+  	  push(@$Line, ['and', getid($rhs, 'rhs') ]);
 	  undef;
 	}
     | bit_expression.lhs '^' shift_expression.rhs
 	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['xor', getid($rhs) ]);
+  	  push(@$Line, ['xor', getid($rhs, 'rhs') ]);
 	  undef;
 	}
     | bit_expression.lhs '|' shift_expression.rhs
@@ -462,7 +460,7 @@ relational_expression:
 	  if (defined($rhs)) {
 	    my $third= new_label();
 	    lac($lhs);
-	    push(@$Line, ['sad', getid($rhs) ]);
+	    push(@$Line, ['sad', getid($rhs, 'rhs') ]);
             push(@$Line, ["  jmp $third"]);
             push(@$Line, ["jmp $lifref->[-1]->[0]\t\t\" NE"]);
             push(@$Line, ["$third:\t\t\" third"]);
@@ -473,7 +471,7 @@ relational_expression:
 	  # Use sad if rhs exists
 	  if (defined($rhs)) {
 	    lac($lhs);
-	    push(@$Line, ['sad', getid($rhs) ]);
+	    push(@$Line, ['sad', getid($rhs, 'rhs') ]);
             push(@$Line, ["  jmp $lifref->[-1]->[0]\t\t\" EQ"]);
 	  }
 	}
@@ -611,9 +609,11 @@ postop_statement:
 ;
 postop_expression:
       lvalue_expression.l INC_OP
-	{ push(@$Line, ['isz', getid($l) ]); }
+	{ push(@$Line, ['isz', getid($l, 'noidea') ]); 
+	  push(@$Line, ['nop']); 
+	}
     | lvalue_expression.l DEC_OP 
-	{ push(@$Line, ['-1', '; tad', getid($l) ]);
+	{ push(@$Line, ['-1', '; tad', getid($l, 'rhs') ]);
 	  dac($l);
 	}
 ;
@@ -781,7 +781,8 @@ sub Run {
     $linenumber = 0;
 
     new_globalid('.temp','',[0]);
-    new_globalid('.ptr','',[0]);
+    new_globalid('.ptr1','',[0]);
+    new_globalid('.ptr2','',[0]);
 
     # Parse the class which is in this file
     my $t= $self->YYParse( yylex => \&_Lexer, yyerror => \&_Error);
