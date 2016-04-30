@@ -114,6 +114,7 @@ sub getid
   my $idref= shift;
   return(undef) if (!defined($idref));
   my ($id, $ind)= @$idref;
+  $ind='' if ($ind=='array');
   if (defined($Local{$last_functionid}{$id})) {
     return("$last_functionid.$id", $ind);
   } else {
@@ -186,13 +187,20 @@ sub lac
 {
   my $id= shift;
   return if (!defined($id));
-  push(@$Line, ['lac', getid($id) ]);
+  if ($id->[1] eq 'array') {
+    lac($id->[2]);
+    push(@$Line, ['tad', getid($id) ]);
+    push(@$Line, ['dac .ptr' ]);
+    push(@$Line, ['lac .ptr i' ]);
+  } else {
+    push(@$Line, ['lac', getid($id) ]);
+  }
 }
 
 sub tempdac
 {
-  push(@$Line, ['dac', 'temp']);
-  return([ 'temp', '' ]);
+  push(@$Line, ['dac', '.temp']);
+  return([ '.temp', '' ]);
 }
 
 sub new_const
@@ -295,13 +303,6 @@ parameter_declaration:
       type_declarator.p 
 	{ new_localid($last_functionid, $p); }
 ;
-lvalue_expression:
-      IDENTIFIER.i
-	{ [ $i, '' ]; }
-    | '*' IDENTIFIER.i
-	{ [ $i, 'i' ]; }
-    | IDENTIFIER '[' bit_expression ']'
-;
 function_expression:
       IDENTIFIER.f '(' ')'
 	{ push(@$Line, ["jms $f"]); undef; }
@@ -322,9 +323,16 @@ argument_list:
 	  lac($a); push(@$Line, [ 'dac', "$calledfn.$pname" ]);
 	}
 ;
-argument:
+lvalue_expression:
       IDENTIFIER.i
 	{ [ $i, '' ]; }
+    | '*' IDENTIFIER.i
+	{ [ $i, 'i' ]; }
+    | IDENTIFIER.i '[' bit_expression.e ']'
+	{ [ $i, 'array', $e ]; }
+;
+argument:
+      lvalue_expression
     | CONSTANT.c
 	{ new_const($c); $c= ($c < 0) ? [ "m$c", ''] : ["d$c", '']; }
     | STRINGLITERAL.s
@@ -332,8 +340,6 @@ argument:
 ;
 basic_expression:
       argument
-    | '*' IDENTIFIER.i
-	{ [ $i, 'i' ]; }
     | function_expression
     | '(' bit_expression.e ')'
 ;
@@ -757,7 +763,8 @@ sub Run {
     $incomment  = 0;
     $linenumber = 0;
 
-    new_globalid('temp','',[0]);
+    new_globalid('.temp','',[0]);
+    new_globalid('.ptr','',[0]);
 
     # Parse the class which is in this file
     my $t= $self->YYParse( yylex => \&_Lexer, yyerror => \&_Error);
