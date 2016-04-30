@@ -51,6 +51,9 @@ getchar: 0
    lac .o4		" No character, return with ctrl-D
    jmp getchar i
 
+.exit: 0
+   sys exit
+
 .cnt: 0         	" Loop counter for printn
 .d1: .fd1: 1		" Output file descriptor
 .fd0: 0			" Input file descriptor
