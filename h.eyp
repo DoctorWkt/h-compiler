@@ -493,14 +493,42 @@ bit_expression:
 ;
 relational_expression:
       bit_expression
-    | relational_expression '<' bit_expression
-	{ Die("< operator not yet implemented, sorry"); }
-    | relational_expression '>' bit_expression
-	{ Die("> operator not yet implemented, sorry"); }
-    | relational_expression LE_OP bit_expression
-	{ Die("<= operator not yet implemented, sorry"); }
-    | relational_expression GE_OP bit_expression
-	{ Die(">= operator not yet implemented, sorry"); }
+    | relational_expression.lhs '<' bit_expression.rhs
+	{
+	  lac($lhs);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['sma']);
+          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+	}
+    | relational_expression.lhs '>' bit_expression.rhs
+	{
+	  lac($rhs);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['tad', getid($lhs, 'rhs') ]);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['sma']);
+          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+	}
+    | relational_expression.lhs LE_OP bit_expression.rhs
+	{
+	  lac($rhs);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['tad', getid($lhs, 'rhs') ]);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['spa']);
+          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+	}
+    | relational_expression.lhs GE_OP bit_expression.rhs
+	{
+	  lac($lhs);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
+	  push(@$Line, ['cma']);
+	  push(@$Line, ['spa']);
+          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+	}
     | relational_expression.lhs EQ_OP bit_expression.rhs
 	{
 	  my $third= new_label();
