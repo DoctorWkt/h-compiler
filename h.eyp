@@ -197,6 +197,22 @@ sub lac
   }
 }
 
+sub dac
+{
+  my $id= shift;
+  return if (!defined($id));
+  if ($id->[1] eq 'array') {
+    push(@$Line, ['dac .temp' ]);
+    lac($id->[2]);
+    push(@$Line, ['tad', getid($id) ]);
+    push(@$Line, ['dac .ptr' ]);
+    push(@$Line, ['lac .temp' ]);
+    push(@$Line, ['dac .ptr i' ]);
+  } else {
+    push(@$Line, ['dac', getid($id) ]);
+  }
+}
+
 sub tempdac
 {
   push(@$Line, ['dac', '.temp']);
@@ -238,7 +254,7 @@ local_declaration:
 	{ new_localid($last_functionid, $p); }
     | type_declarator.p '=' bit_expression.e ';' 
 	{ new_localid($last_functionid, $p);
-	  lac($e); push(@$Line, [ 'dac', getid([$p,'']) ]);
+	  lac($e); dac([$p,'']);
 	}
 ;
 array_declaration:
@@ -315,12 +331,12 @@ argument_list:
       argument.a
 	{ # Get the name of the function's param at this position
 	  my $pname= $PPosn{$calledfn}[$nextpnum++];
-	  lac($a); push(@$Line, [ 'dac', "$calledfn.$pname" ]);
+	  lac($a); dac(["$calledfn.$pname",'']);
 	}
     | argument_list ',' argument.a
 	{ # Get the name of the function's param at this position
 	  my $pname= $PPosn{$calledfn}[$nextpnum++];
-	  lac($a); push(@$Line, [ 'dac', "$calledfn.$pname" ]);
+	  lac($a); dac(["$calledfn.$pname",'']);
 	}
 ;
 lvalue_expression:
@@ -478,7 +494,7 @@ labeled_statement:
 ;
 assignment_statement:
     lvalue_expression.l '=' bit_expression.e
-	{ lac($e); push(@$Line, [ 'dac', getid($l) ]); }
+	{ lac($e); dac($l); }
 ;
 selection_statement:
       if_head %prec WEAK
@@ -597,7 +613,7 @@ postop_expression:
 	{ push(@$Line, ['isz', getid($l) ]); }
     | lvalue_expression.l DEC_OP 
 	{ push(@$Line, ['-1', '; tad', getid($l) ]);
-	  push(@$Line, ['dac', getid($l) ]);
+	  dac($l);
 	}
 ;
 declaration_list:
