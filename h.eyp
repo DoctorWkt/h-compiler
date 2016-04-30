@@ -110,6 +110,7 @@ sub getid
 {
   my ($idref, $how)= @_;
   return(undef) if (!defined($idref));
+print Dumper($idref);
   my ($id, $ind, $offset)= @$idref;
   $id= "$last_functionid.$id"
 		if (defined($Local{$last_functionid}{$id}));
@@ -364,6 +365,7 @@ basic_expression:
       argument
     | function_expression
     | '(' bit_expression.e ')'
+	{ $e; }
 ;
 multiplicative_expression:
       basic_expression
