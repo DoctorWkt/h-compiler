@@ -38,7 +38,7 @@ my %Function=(       # List of known function identifiers
     'printn' => 'proto',
     'getchar' => 'proto',
     'putchar' => 'proto',
-    'exit' => 'proto',
+    '.exit' => 'proto',
 );
 		     # List of assembly code lines we have generated
 		     # but which have not yet been added to the final
@@ -61,12 +61,9 @@ my %Keyword= (
   'void' => 'VOID',
   'while' => 'WHILE',
 );
-		     # List of known system calls
+		     # List of known system calls to translate
 my %Syscall= (
-  'printn' => 1,
-  'getchar' => 1,
-  'putchar' => 1,
-  'exit' => 1,
+  'exit' => '.exit',
 );
 
 # Simple method to print error and die
@@ -162,6 +159,16 @@ sub new_functionid
   push(@$Line, [ "$id: 0" ]) if ($definition eq "real");
   $last_functionid=$id;
   $nextpnum=0;		# params for this function start at 0
+}
+
+# Check and return a function name. Translate system calls to
+# ones starting with a dot, so we don't tread on the assembler's toes
+sub get_functionid
+{
+  my $id= shift;
+  $id= $Syscall{$id} if (defined($Syscall{$id}));
+  Die("$id function not yet declared") if (!defined($Function{$id}));
+  return($id);
 }
 
 
@@ -320,11 +327,11 @@ parameter_declaration:
 ;
 function_expression:
       IDENTIFIER.f '(' ')'
-	{ push(@$Line, ["jms $f"]); undef; }
+	{ push(@$Line, ['jms', get_functionid($f) ]); undef; }
     | IDENTIFIER.f '('
 	{ $nextpnum=0; $calledfn= $f; }
       argument_list ')' 
-	{ push(@$Line, ["jms $f"]); undef; }
+	{ push(@$Line, ['jms', get_functionid($f) ]); undef; }
 ;
 argument_list:
       argument.a
