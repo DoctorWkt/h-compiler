@@ -417,6 +417,12 @@ sub xor {
 sub sad {
     my ( $instruction, $addr, $indaddr ) = @_;
     dprintf( "sad %s (%06o)\n", addr($indaddr), $Mem[$indaddr] );
+    dprintf("  comparing %d to %d\n", $AC, $Mem[$indaddr]);
+    if ($AC != $Mem[$indaddr]) {
+      dprintf( "  adding 2 to PC\n");
+    } else {
+      dprintf( "  adding 1 to PC\n");
+    }
     $PC += ( $AC != $Mem[$indaddr] ) ? 2 : 1;
 }
 
@@ -594,7 +600,7 @@ sub eae {
         dprintf( "idiv %06o by %06o (decimal %d by %d)\n",
 				$AC, $divisor, $AC, $divisor );
 	# Prevent division by zero :-)
-	my $quotient = ($divisor) ? $AC / $divisor : 0;
+	my $quotient = ($divisor) ? int($AC / $divisor) : 0;
 	my $remainder = ($divisor) ? $AC % $divisor : 0;
 	$MQ= $quotient;
 	$AC= $remainder;
