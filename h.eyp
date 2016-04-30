@@ -508,9 +508,13 @@ bit_expression:
 relational_expression:
       bit_expression
     | relational_expression '<' bit_expression
+	{ Die("< operator not yet implemented, sorry"); }
     | relational_expression '>' bit_expression
+	{ Die("> operator not yet implemented, sorry"); }
     | relational_expression LE_OP bit_expression
+	{ Die("<= operator not yet implemented, sorry"); }
     | relational_expression GE_OP bit_expression
+	{ Die(">= operator not yet implemented, sorry"); }
     | relational_expression.lhs EQ_OP bit_expression.rhs
 	{
 	  # Use sad if rhs exists

@@ -1,6 +1,5 @@
 #!/bin/sh
-#for i in t?.h t??.h
-for i in t?.h
+for i in t?.h t??.h
 do echo -n $i
    sfile=`echo $i | sed 's/h$/s/'`
    outfile=`echo $i | sed 's/h$/out/'`
