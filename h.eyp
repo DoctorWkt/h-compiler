@@ -114,7 +114,7 @@ sub getid
   my $idref= shift;
   return(undef) if (!defined($idref));
   my ($id, $ind)= @$idref;
-  $ind='' if ($ind=='array');
+  $ind='' if ($ind eq 'array');
   if (defined($Local{$last_functionid}{$id})) {
     return("$last_functionid.$id", $ind);
   } else {
@@ -175,7 +175,8 @@ sub write_strliterals
 {
   foreach my $sref (@Stringlit) {
     my ($s, $label)= @$sref;
-    push(@$Line, ["$label:"]);
+    push(@$Line, ["$label: $label.base"]);
+    push(@$Line, ["$label.base:"]);
     foreach my $i (0 .. length($s)-1) {
       push(@$Line, ["\t" . ord( substr($s, $i, 1))]);
     }
@@ -193,7 +194,7 @@ sub lac
     push(@$Line, ['dac .ptr' ]);
     push(@$Line, ['lac .ptr i' ]);
   } else {
-    push(@$Line, ['lac', getid($id) ]);
+    push(@$Line, ['lac', getid($id)]);
   }
 }
 
@@ -209,7 +210,7 @@ sub dac
     push(@$Line, ['lac .temp' ]);
     push(@$Line, ['dac .ptr i' ]);
   } else {
-    push(@$Line, ['dac', getid($id) ]);
+    push(@$Line, ['dac', getid($id)]);
   }
 }
 
