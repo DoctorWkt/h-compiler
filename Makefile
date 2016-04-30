@@ -16,7 +16,7 @@ run: hello
 	./a7out hello
 
 test: h.pm
-	( cd tests; ./runtests)
+	(cd tests; ./runtests)
 
 clean:
 	rm -f h.pm hello.s hello
