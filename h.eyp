@@ -1,5 +1,6 @@
 # h.eyp: Compiler for Warren's simple H language.
 # All variables are global, char and int are the same.
+# No recursion.
 #
 # (c) Warren Toomey, 2016. GPL3 license.
 #
@@ -189,6 +190,7 @@ sub add_strliteral
   my ($s, $label)= @_;
   $label= new_strlabel() if (!defined($label));
   push(@Stringlit, [ $s, $label ]);
+  return($label);
 }
 
 # Write out all the string literals and their labels
@@ -358,7 +360,8 @@ argument:
     | CONSTANT.c
 	{ new_const($c); $c= ($c < 0) ? [ "m$c", ''] : ["d$c", '']; }
     | STRINGLITERAL.s
-	{ [ $s, '' ]; }
+	{ my $id= add_strliteral($s);
+	  [ $id, '' ]; }
 ;
 basic_expression:
       argument
@@ -797,7 +800,6 @@ sub Run {
     my $t= $self->YYParse( yylex => \&_Lexer, yyerror => \&_Error);
 
     write_strliterals();
-    push(@$Line, ['LLend:']);
     push(@FinalLine, $Line);
 
     # Print out the lines of code
