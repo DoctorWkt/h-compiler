@@ -110,7 +110,6 @@ sub getid
 {
   my ($idref, $how)= @_;
   return(undef) if (!defined($idref));
-print Dumper($idref);
   my ($id, $ind, $offset)= @$idref;
   $id= "$last_functionid.$id"
 		if (defined($Local{$last_functionid}{$id}));
