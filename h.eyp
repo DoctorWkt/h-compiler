@@ -15,52 +15,53 @@
 %{
 use Data::Dumper;
 ### GLOBALS ###
-my ( $IN, $OUT );    # Filehandles for input & output files
-my $Basename;        # Basename of both files
-my @TokenQueue;      # Stack of tokens not yet read
-my $incomment;       # Are we in a multi-line comment?
-my $linenumber;      # What line number we are on
-my @Constlist;       # List of constants in array initialisation
-my %Global;          # List of known global identifiers
-my %Local;           # List of known per-function identifiers
-		     # ->{fnname}->{id}
-my %PPosn= (
-    'putchar' => [ 'c' ],
-    'printn' => [ 'n' ],
+my ( $IN, $OUT );    	# Filehandles for input & output files
+my $Basename;        	# Basename of both files
+my @TokenQueue;      	# Stack of tokens not yet read
+my $incomment;       	# Are we in a multi-line comment?
+my $linenumber;      	# What line number we are on
+my @Constlist;       	# List of constants in array initialisation
+my %Global;          	# List of known global identifiers
+my %Local;           	# List of known per-function identifiers
+		     	# ->{fnname}->{id}
+my %PPosn= (	     	# The parameter names at each position for each function
+ 'putchar' => [ 'c' ],
+ 'printn'  => [ 'n' ],
 );
-my $last_functionid="";
-my $calledfn="";
-my %Const;
-my @FinalLine;       # Array of references to arrays which contain all
-		     # the generated assembly code lines
-my @Forstack;	     # Stack of line arrayrefs of third expressions in FOR
 
-my %Function=(       # List of known function identifiers
+my $last_functionid="";	# Name of the last function that was created
+my $calledfn="";	# Name of the function being called, needed when doing arguments
+my %Const;		# List of numeric constants used
+my @FinalLine;       	# Array of references to arrays which contain all
+		     	# the generated assembly code lines
+my @Forstack;	     	# Stack of line arrayrefs of third expressions in FOR
+
+my %Function=(       	# List of known function identifiers
     'printn' => 'proto',
     'getchar' => 'proto',
     'putchar' => 'proto',
     '.exit' => 'proto',
 );
-		     # List of assembly code lines we have generated
-		     # but which have not yet been added to the final
-		     # set of lines in @FinalLine
+		     	# List of assembly code lines we have generated
+		     	# but which have not yet been added to the final
+		     	# set of lines in @FinalLine
 my $Line=[ ['jms','main'],['sys','exit'] ];
 
-		     # List of keywords in the grammar
+		     	# List of keywords in the grammar
 my %Keyword= (
-  'break' => 'BREAK',
-  'char' => 'CHAR',
+  'break'    => 'BREAK',
+  'char'     => 'CHAR',
   'continue' => 'CONTINUE',
-  'do' => 'DO',
-  'else' => 'ELSE',
-  'for' => 'FOR',
-  'goto' => 'GOTO',
-  'if' => 'IF',
-  'int' => 'INT',
-  'return' => 'RETURN',
-  'switch' => 'SWITCH',
-  'void' => 'VOID',
-  'while' => 'WHILE',
+  'do'       => 'DO',
+  'else'     => 'ELSE',
+  'for'      => 'FOR',
+  'goto'     => 'GOTO',
+  'if' 	     => 'IF',
+  'int'      => 'INT',
+  'return'   => 'RETURN',
+  'switch'   => 'SWITCH',
+  'void'     => 'VOID',
+  'while'    => 'WHILE',
 );
 		     # List of known system calls to translate
 my %Syscall= (
@@ -71,7 +72,7 @@ my %Syscall= (
 sub Die
 {
   my $err= shift;
-  print(STDERR "$err on $Basename.a line $linenumber\n");
+  print(STDERR "$err on $Basename.h line $linenumber\n");
   exit(1);
 }
 
@@ -84,6 +85,8 @@ sub new_globalid
   Die("$id global already declared") if (defined($Global{$id}));
   $Global{$id}=$type;
   return if (!defined($valref));
+
+  # Arrays: also create a pointer to the array base
   if ($type eq "array") {
     push(@$Line, [ "$id: $id.base"]);
     push(@$Line, [ "$id.base:"]);
@@ -95,7 +98,9 @@ sub new_globalid
   }
 }
 
-my $nextpnum;
+my $nextpnum;			# The position of the next parameter
+
+# Declare a new local identifier for the current function
 sub new_localid
 {
   my ($fn,$id)= @_;
@@ -105,8 +110,8 @@ sub new_localid
 }
 
 # Given an identifier arrayref, see if this is a local or
-# a global. Return a local identifier ref or the original
-# but as a list, not as an arrayref.
+# a global. Return a local identifier ref or the original.
+# Return a list, not an arrayref.
 sub getid
 {
   my ($idref, $how)= @_;
@@ -114,11 +119,17 @@ sub getid
   my ($id, $ind, $offset)= @$idref;
   $id= "$last_functionid.$id"
 		if (defined($Local{$last_functionid}{$id}));
+
+  # Arrays are hard because we have to create a pointer to
+  # the element, and then we can return the pointer. We may
+  # also have to temporarily store the AC before we create
+  # the pointer
   if ($ind eq 'array') {
     my ($offid, $offind) = @$offset;
+
     Die("can't index an array more than once") if ($offind eq 'array');
     ($offid, $offind)= getid($offset);
-    push(@$Line, [ "\t\t\t\" getid array $id, off $offid $offind, how $how" ]);
+    # push(@$Line, [ "\t\t\t\" getid array $id, off $offid $offind, how $how" ]);
 
     # If this isn't a lac, save the current AC
     push(@$Line, ['dac .temp']) if ($how ne 'lac');
@@ -135,12 +146,12 @@ sub getid
 }
 
 #### LABEL CODE
-my $label=0;
-my @loopstack;
-my @ifstack;
+my @loopstack;	# Stack of labels for each loop
+my @ifstack;	# Stack of labels for each selection statement
 my $lifref;	# Points to either the loopstack or the ifstack
 
 # Return a new label
+my $label=0;
 sub new_label
 {
   $label++;
@@ -157,9 +168,11 @@ sub new_functionid
   Die("$id function already declared")
 	if (defined($Function{$id}) && $Function{$id} eq "real");
   $Function{$id}=$definition;
+
+  # Create the zero word at the top of the function
   push(@$Line, [ "$id: 0" ]) if ($definition eq "real");
   $last_functionid=$id;
-  $nextpnum=0;		# params for this function start at 0
+  $nextpnum=0;		# Params for this function start at 0
 }
 
 # Check and return a function name. Translate system calls to
@@ -175,8 +188,8 @@ sub get_functionid
 
 ### STRINGLIST CODE
 my @Stringlit;		# List of string literals and their identifiers
-my $strlabel=0;
 
+my $strlabel=0;
 # Return a new string label
 sub new_strlabel
 {
@@ -207,6 +220,8 @@ sub write_strliterals
   }
 }
 
+### PDP-7 specific code
+# Expand an identifier and load it into the AC
 sub lac
 {
   my $id= shift;
@@ -214,6 +229,7 @@ sub lac
   push(@$Line, ['lac', getid($id, 'lac')]);
 }
 
+# Expand an identifier and store into it from the AC
 sub dac
 {
   my $id= shift;
@@ -221,12 +237,16 @@ sub dac
   push(@$Line, ['dac', getid($id, 'dac')]);
 }
 
+# Temporarily store the AC and return an
+# identifier for the temporary storage
 sub tempdac
 {
   push(@$Line, ['dac', '.temp']);
   return([ '.temp', '' ]);
 }
 
+# Create a new constant to be written
+# out later
 sub new_const
 {
   my $c= shift;
@@ -236,7 +256,6 @@ sub new_const
     $Const{"d$c"}=$c;
   }
 }
-
 
 %}
 
@@ -347,6 +366,12 @@ argument_list:
 	  lac($a); dac(["$calledfn.$pname",'']);
 	}
 ;
+
+# Expressions are represented as an arrayref with two or
+# three elements: the identifier, 'i' if it needs an
+# indirect reference, and an optional third value which
+# is the array offset expression (i.e. also an arrayref).
+# The second element is 'array' if there is an offset.
 lvalue_expression:
       IDENTIFIER.i
 	{ [ $i, '' ]; }
@@ -413,7 +438,7 @@ additive_expression:
     | additive_expression.lhs '+' multiplicative_expression.rhs
 	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['tad', getid($rhs, 'rhs'),"\t\t\" add" ]);
+  	  push(@$Line, ['tad', getid($rhs, 'rhs')]);
 	  undef;
 	}
     | additive_expression.lhs '-' multiplicative_expression.rhs
@@ -473,8 +498,8 @@ relational_expression:
 	    lac($lhs);
 	    push(@$Line, ['sad', getid($rhs, 'rhs') ]);
             push(@$Line, ["  jmp $third"]);
-            push(@$Line, ["jmp $lifref->[-1]->[0]\t\t\" NE"]);
-            push(@$Line, ["$third:\t\t\" third"]);
+            push(@$Line, ["jmp $lifref->[-1]->[0]"]);
+            push(@$Line, ["$third:"]);
 	  }
 	}
     | relational_expression.lhs NE_OP bit_expression.rhs
@@ -483,7 +508,7 @@ relational_expression:
 	  if (defined($rhs)) {
 	    lac($lhs);
 	    push(@$Line, ['sad', getid($rhs, 'rhs') ]);
-            push(@$Line, ["  jmp $lifref->[-1]->[0]\t\t\" EQ"]);
+            push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
 	  }
 	}
 ;
@@ -508,15 +533,15 @@ assignment_statement:
 ;
 selection_statement:
       if_head %prec WEAK
-        { push(@$Line, ["$ifstack[-1]->[0]:\t\t\" IFsingle top"]);
+        { push(@$Line, ["$ifstack[-1]->[0]:"]);
           pop(@ifstack);
         }
     | if_head
 	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]);
-          push(@$Line, ["$ifstack[-1]->[0]:\t\t\" IFelse top"]); 
+          push(@$Line, ["$ifstack[-1]->[0]:"]); 
 	}
       ELSE statement
-        { push(@$Line, ["$ifstack[-1]->[1]:\t\t\" ELSE"]);
+        { push(@$Line, ["$ifstack[-1]->[1]:"]);
 	  pop(@ifstack);
 	}
 ;
@@ -537,12 +562,12 @@ iteration_statement:
           my $end= new_label();
           push(@loopstack, [ $end, $start ]);
 	  $lifref= \@loopstack;
-          push(@$Line, ["$start:\t\t\" WHILE start"]);
+          push(@$Line, ["$start:"]);
         }
       '(' relational_expression ')'
       statement
         { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
-          push(@$Line, ["$loopstack[-1]->[0]:\t\t\" WHILE end"]);
+          push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
 	}
     | DO
@@ -551,11 +576,11 @@ iteration_statement:
           my $end= new_label();
           push(@loopstack, [ $end, $start ]);
 	  $lifref= \@loopstack;
-          push(@$Line, ["$start:\t\t\" DO start"]);
+          push(@$Line, ["$start:"]);
         }
       statement WHILE '(' relational_expression ')' ';'
         { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
-          push(@$Line, ["$loopstack[-1]->[0]:\t\t\" DO end"]);
+          push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
 	}
     | FOR
@@ -565,7 +590,7 @@ iteration_statement:
           my $end= new_label();
           push(@loopstack, [ $end, $start ]);
 	  $lifref= \@loopstack;
-          push(@$Line, ["$start:\t\t\" FOR start"]);
+          push(@$Line, ["$start:"]);
         }
       relational_expression ';'
         { # Move all the current lines over to FinalLine
@@ -581,7 +606,7 @@ iteration_statement:
           push(@FinalLine, pop(@Forstack));
           # Now add in the jump at the end of the loop
           push(@$Line, ["jmp $loopstack[-1]->[1]"]);
-          push(@$Line, ["$loopstack[-1]->[0]:\t\t\" FOR end"]);
+          push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
         }
 ;
@@ -602,9 +627,9 @@ jump_statement:
       GOTO IDENTIFIER.i ';'
   	{ push(@$Line, [ "jmp $i" ]); }
     | CONTINUE ';'
-	{ push(@$Line, ["jmp $loopstack[-1]->[1]\t\t\" CONTINUE"]); }
+	{ push(@$Line, ["jmp $loopstack[-1]->[1]"]); }
     | BREAK ';'
-	{ push(@$Line, ["jmp $loopstack[-1]->[0]\t\t\" BREAK"]); }
+	{ push(@$Line, ["jmp $loopstack[-1]->[0]"]); }
     | RETURN ';'
 	{ push(@$Line, ["jmp $last_functionid i"]); }
     | RETURN '(' bit_expression.e ')' ';' 
@@ -832,15 +857,10 @@ sub Run {
 ### MAIN PROGRAM ###
 
 # Error if no argument
-die("Usage: $0 file.h\n") if ( @ARGV != 1 );
+die("Usage: $0 file.h\n") if (@ARGV != 1);
+die("No input file $ARGV[0]\n")
+	if (! -f $ARGV[0]);
 
-# If it's a file, simply parse it
-if ( -f $ARGV[0] ) {
-    my($parser)=new h;
-    $parser->Run($ARGV[0]);
-    exit(0);
-} else {
-  die("Usage: $0 file.h\n");
-}
-
+my($parser)=new h;
+$parser->Run($ARGV[0]);
 exit(0);
