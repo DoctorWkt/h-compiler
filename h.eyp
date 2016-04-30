@@ -20,6 +20,7 @@ my $Basename;        	# Basename of both files
 my @TokenQueue;      	# Stack of tokens not yet read
 my $incomment;       	# Are we in a multi-line comment?
 my $linenumber;      	# What line number we are on
+my $Optimise=0;		# Are optimisations turned on?
 my @Constlist;       	# List of constants in array initialisation
 my %Global;          	# List of known global identifiers
 my %Local;           	# List of known per-function identifiers
@@ -104,9 +105,23 @@ my $nextpnum;			# The position of the next parameter
 sub new_localid
 {
   my ($fn,$id)= @_;
-  Die("$fn: $id local already declared") if (defined($Local{$fn}{$id}));
+
+  # If we already have a definition for this local,
+  # ignore it if this is from a prototype
+  if (defined($Local{$fn}{$id})) {
+    if ($Function{$fn} eq 'proto') {
+      # However, check that it's in the same position
+      Die("$fn: $id not in same position as prototype")
+	if ($PPosn{$fn}[$nextpnum] ne $id);
+      $nextpnum++; return;
+    }
+
+    Die("$fn: $id local already declared");
+  }
+
+  # Define the local and store its position
   $Local{$fn}{$id}=1;
-  $PPosn{$fn}[$nextpnum++]= $id;	# Save the param's position
+  $PPosn{$fn}[$nextpnum++]= $id;
 }
 
 # Given an identifier arrayref, see if this is a local or
@@ -168,11 +183,15 @@ sub new_functionid
   Die("$id function already declared")
 	if (defined($Function{$id}) && $Function{$id} eq "real");
   $Function{$id}=$definition;
-
-  # Create the zero word at the top of the function
-  push(@$Line, [ "$id: 0" ]) if ($definition eq "real");
-  $last_functionid=$id;
   $nextpnum=0;		# Params for this function start at 0
+  $last_functionid=$id;
+}
+
+# Print out the label of the function just created
+sub print_function_label
+{
+  $Function{$last_functionid}= 'real';
+  push(@$Line, [ "$last_functionid: 0" ]);
 }
 
 # Check and return a function name. Translate system calls to
@@ -328,14 +347,16 @@ pointer:
 ;
 function_definition:
       function_declarator ';'
-    | function_declarator compound_statement
+    | function_declarator
+	{ print_function_label(); }
+      compound_statement
 	{ push(@$Line, ["jmp $last_functionid i"]); }
 ;
 function_declarator:
       type_declarator.f '(' ')'
-	{ new_functionid($f,'real'); }
+	{ new_functionid($f,'proto'); }
     | type_declarator.f '('
-	{ new_functionid($f,'real'); }
+	{ new_functionid($f,'proto'); }
       parameter_list ')'
 ;
 parameter_list:
@@ -857,9 +878,19 @@ sub Run {
 ### MAIN PROGRAM ###
 
 # Error if no argument
-die("Usage: $0 file.h\n") if (@ARGV != 1);
-die("No input file $ARGV[0]\n")
-	if (! -f $ARGV[0]);
+die("Usage: $0 [-O] file.h\n") if (@ARGV < 1);
+
+# Get any optional arguments
+while ( defined( $ARGV[0] ) && ( $ARGV[0] =~ m{^-} ) ) {
+
+    # -O: optimise
+    if ( $ARGV[0] eq "-O" ) {
+        $Optimise = 1;
+        shift(@ARGV);
+    }
+}
+
+die("No input file $ARGV[0]\n") if (! -f $ARGV[0]);
 
 my($parser)=new h;
 $parser->Run($ARGV[0]);
