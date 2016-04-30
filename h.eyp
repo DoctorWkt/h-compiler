@@ -268,11 +268,15 @@ sub tempdac
 sub new_const
 {
   my $c= shift;
+  my $label;
   if ($c<0) {
-    $Const{"m$c"}=$c;
+    my $absc= abs($c);
+    $label= "m$absc";
   } else {
-    $Const{"d$c"}=$c;
+    $label= "d$c";
   }
+  $Const{$label}=$c;
+  return($label);
 }
 
 %}
@@ -403,7 +407,7 @@ lvalue_expression:
 argument:
       lvalue_expression
     | CONSTANT.c
-	{ new_const($c); $c= ($c < 0) ? [ "m$c", ''] : ["d$c", '']; }
+	{ $c= new_const($c); [ $c, '']; }
     | STRINGLITERAL.s
 	{ my $id= add_strliteral($s);
 	  [ $id, '' ]; }
