@@ -1,4 +1,2 @@
 1. <, >, <= >= and friends
-2. allow f'n prototypes and f'n definitions
-3. string literals, not just array declarations
-3. eventually do optimisation
+2. eventually do optimisation
