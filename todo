@@ -1,2 +1,3 @@
 1. <, >, <= >= and friends
-2. eventually do optimisation
+2. Check that octal and negative literals work
+2. Eventually do optimisation
