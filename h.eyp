@@ -144,7 +144,6 @@ sub getid
 
     Die("can't index an array more than once") if ($offind eq 'array');
     ($offid, $offind)= getid($offset);
-    # push(@$Line, [ "\t\t\t\" getid array $id, off $offid $offind, how $how" ]);
 
     # If this isn't a lac, save the current AC
     push(@$Line, ['dac .temp']) if ($how ne 'lac');
@@ -418,37 +417,22 @@ basic_expression:
 multiplicative_expression:
       basic_expression
     | multiplicative_expression.lhs '*' basic_expression.rhs
-	{ $lhs= tempdac() if (!defined($lhs));
-	  if (!defined($rhs)) {
-  	    push(@$Line, ['panic!']);
-	  } else {
-	    lac($rhs);
-  	    push(@$Line, ['dac .+4']);
-	  }
+	{ lac($rhs);
+  	  push(@$Line, ['dac .+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; mul; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '/' basic_expression.rhs
-	{ $lhs= tempdac() if (!defined($lhs));
-	  if (!defined($rhs)) {
-  	    push(@$Line, ['panic!']);
-	  } else {
-	    lac($rhs);
-  	    push(@$Line, ['dac .+4']);
-	  }
+	{ lac($rhs);
+  	  push(@$Line, ['dac .+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '%' basic_expression.rhs
-	{ $lhs= tempdac() if (!defined($lhs));
-	  if (!defined($rhs)) {
-  	    push(@$Line, ['panic!']);
-	  } else {
-	    lac($rhs);
-  	    push(@$Line, ['dac .+4']);
-	  }
+	{ lac($rhs);
+  	  push(@$Line, ['dac .+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..']);
 	  undef;
@@ -457,14 +441,12 @@ multiplicative_expression:
 additive_expression:
       multiplicative_expression
     | additive_expression.lhs '+' multiplicative_expression.rhs
-	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
-	  lac($lhs);
+	{ lac($lhs);
   	  push(@$Line, ['tad', getid($rhs, 'rhs')]);
 	  undef;
 	}
     | additive_expression.lhs '-' multiplicative_expression.rhs
-	{ $rhs= tempdac() if (!defined($rhs));
-	  lac($lhs);
+	{ lac($lhs);
   	  push(@$Line, ['cma']);
   	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
   	  push(@$Line, ['cma']);
@@ -517,24 +499,18 @@ relational_expression:
 	{ Die(">= operator not yet implemented, sorry"); }
     | relational_expression.lhs EQ_OP bit_expression.rhs
 	{
-	  # Use sad if rhs exists
-	  if (defined($rhs)) {
-	    my $third= new_label();
-	    lac($lhs);
-	    push(@$Line, ['sad', getid($rhs, 'rhs') ]);
-            push(@$Line, ["  jmp $third"]);
-            push(@$Line, ["jmp $lifref->[-1]->[0]"]);
-            push(@$Line, ["$third:"]);
-	  }
+	  my $third= new_label();
+	  lac($lhs);
+	  push(@$Line, ['sad', getid($rhs, 'rhs') ]);
+          push(@$Line, ["  jmp $third"]);
+          push(@$Line, ["jmp $lifref->[-1]->[0]"]);
+          push(@$Line, ["$third:"]);
 	}
     | relational_expression.lhs NE_OP bit_expression.rhs
 	{
-	  # Use sad if rhs exists
-	  if (defined($rhs)) {
-	    lac($lhs);
-	    push(@$Line, ['sad', getid($rhs, 'rhs') ]);
-            push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
-	  }
+	  lac($lhs);
+	  push(@$Line, ['sad', getid($rhs, 'rhs') ]);
+          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
 	}
 ;
 statement:
