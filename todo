@@ -1,1 +1,2 @@
-1. Eventually do optimisation
+Add Unix syscalls
+Provide something like argc and argv to main

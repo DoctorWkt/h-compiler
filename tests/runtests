@@ -3,7 +3,7 @@ for i in t?.h t??.h
 do echo -n $i
    sfile=`echo $i | sed 's/h$/s/'`
    outfile=`echo $i | sed 's/h$/out/'`
-   ../h.pm $i
+   ../h.pm $1 $i
    ../as7 $sfile ../hrt.s 2> /dev/null
    ../a7out a.out > $$
    cmp -s $outfile $$

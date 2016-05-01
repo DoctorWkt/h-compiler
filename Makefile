@@ -18,5 +18,8 @@ run: hello
 test: h.pm
 	(cd tests; ./runtests)
 
+otest: h.pm
+	(cd tests; ./runtests -O)
+
 clean:
 	rm -f h.pm hello.s hello

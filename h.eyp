@@ -95,7 +95,7 @@ sub new_globalid
     push(@$Line, [ "$id:"]);
   }
   foreach my $val (@$valref) {
-    push(@$Line, [ "\t$val"]);
+    push(@$Line, [ "   $val"]);
   }
 }
 
@@ -126,7 +126,7 @@ sub new_localid
 
 # Given an identifier arrayref, see if this is a local or
 # a global. Return a local identifier ref or the original.
-# Return a list, not an arrayref.
+# Return a string with identifier and any 'i'
 sub getid
 {
   my ($idref, $how)= @_;
@@ -143,20 +143,20 @@ sub getid
     my ($offid, $offind) = @$offset;
 
     Die("can't index an array more than once") if ($offind eq 'array');
-    ($offid, $offind)= getid($offset);
+    $offset= getid($offset);	# Get the real offset name
 
     # If this isn't a lac, save the current AC
-    push(@$Line, ['dac .temp']) if ($how ne 'lac');
+    push(@$Line, ['dac', '.temp']) if ($how ne 'lac');
 
     # Get the pointer to the array element into ptr1
     # and then get back the saved AC
     push(@$Line, ['lac', $id]);
-    push(@$Line, ['tad', $offid, $offind]);
-    push(@$Line, ['dac .ptr1']);
-    push(@$Line, ['lac .temp']) if ($how ne 'lac');
-    $id='.ptr1'; $ind='i';
+    push(@$Line, ['tad', "$offset"]);
+    push(@$Line, ['dac', '.ptr1']);
+    push(@$Line, ['lac', '.temp']) if ($how ne 'lac');
+    $id='.ptr1'; $ind=' i';
   }
-  return($id, $ind);
+  return("$id$ind");
 }
 
 #### LABEL CODE
@@ -232,9 +232,9 @@ sub write_strliterals
     push(@$Line, ["$label: $label.base"]);
     push(@$Line, ["$label.base:"]);
     foreach my $i (0 .. length($s)-1) {
-      push(@$Line, ["\t" . ord( substr($s, $i, 1))]);
+      push(@$Line, ["   " . ord( substr($s, $i, 1))]);
     }
-    push(@$Line, ["\t0"]);
+    push(@$Line, ["0"]);
   }
 }
 
@@ -353,7 +353,7 @@ function_definition:
     | function_declarator
 	{ print_function_label(); }
       compound_statement
-	{ push(@$Line, ["jmp $last_functionid i"]); }
+	{ push(@$Line, ['jmp', "$last_functionid i"]); }
 ;
 function_declarator:
       type_declarator.f '(' ')'
@@ -400,7 +400,7 @@ lvalue_expression:
       IDENTIFIER.i
 	{ [ $i, '' ]; }
     | '*' IDENTIFIER.i
-	{ [ $i, 'i' ]; }
+	{ [ $i, ' i' ]; }
     | IDENTIFIER.i '[' bit_expression.e ']'
 	{ [ $i, 'array', $e ]; }
 ;
@@ -422,21 +422,21 @@ multiplicative_expression:
       basic_expression
     | multiplicative_expression.lhs '*' basic_expression.rhs
 	{ lac($rhs);
-  	  push(@$Line, ['dac .+4']);
+  	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; mul; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '/' basic_expression.rhs
 	{ lac($rhs);
-  	  push(@$Line, ['dac .+4']);
+  	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '%' basic_expression.rhs
 	{ lac($rhs);
-  	  push(@$Line, ['dac .+4']);
+  	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..']);
 	  undef;
@@ -500,7 +500,7 @@ relational_expression:
 	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
-          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs '>' bit_expression.rhs
 	{
@@ -509,7 +509,7 @@ relational_expression:
 	  push(@$Line, ['tad', getid($lhs, 'rhs') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
-          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs LE_OP bit_expression.rhs
 	{
@@ -518,7 +518,7 @@ relational_expression:
 	  push(@$Line, ['tad', getid($lhs, 'rhs') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
-          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs GE_OP bit_expression.rhs
 	{
@@ -527,22 +527,22 @@ relational_expression:
 	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
-          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs EQ_OP bit_expression.rhs
 	{
 	  my $third= new_label();
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs') ]);
-          push(@$Line, ["  jmp $third"]);
-          push(@$Line, ["jmp $lifref->[-1]->[0]"]);
+          push(@$Line, ['jmp', $third]);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
           push(@$Line, ["$third:"]);
 	}
     | relational_expression.lhs NE_OP bit_expression.rhs
 	{
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs') ]);
-          push(@$Line, ["  jmp $lifref->[-1]->[0]"]);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
 ;
 statement:
@@ -570,7 +570,7 @@ selection_statement:
           pop(@ifstack);
         }
     | if_head
-	{ push(@$Line, ["jmp $ifstack[-1]->[1]"]);
+	{ push(@$Line, ['jmp', $ifstack[-1]->[1]]);
           push(@$Line, ["$ifstack[-1]->[0]:"]); 
 	}
       ELSE statement
@@ -599,7 +599,7 @@ iteration_statement:
         }
       '(' relational_expression ')'
       statement
-        { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
+        { push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
 	}
@@ -612,7 +612,7 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       statement WHILE '(' relational_expression ')' ';'
-        { push(@$Line, ["jmp $loopstack[-1]->[1]"]);
+        { push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
 	}
@@ -638,7 +638,7 @@ iteration_statement:
           # and save in the FinalLine array
           push(@FinalLine, pop(@Forstack));
           # Now add in the jump at the end of the loop
-          push(@$Line, ["jmp $loopstack[-1]->[1]"]);
+          push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
         }
@@ -658,15 +658,15 @@ third_for_expression:
 
 jump_statement:
       GOTO IDENTIFIER.i ';'
-  	{ push(@$Line, [ "jmp $i" ]); }
+  	{ push(@$Line, [ 'jmp', $i ]); }
     | CONTINUE ';'
-	{ push(@$Line, ["jmp $loopstack[-1]->[1]"]); }
+	{ push(@$Line, ['jmp', $loopstack[-1]->[1]]); }
     | BREAK ';'
-	{ push(@$Line, ["jmp $loopstack[-1]->[0]"]); }
+	{ push(@$Line, ['jmp', $loopstack[-1]->[0]]); }
     | RETURN ';'
-	{ push(@$Line, ["jmp $last_functionid i"]); }
+	{ push(@$Line, ['jmp', "$last_functionid i"]); }
     | RETURN '(' bit_expression.e ')' ';' 
-	{ lac($e); push(@$Line, ["jmp $last_functionid i"]); }
+	{ lac($e); push(@$Line, ['jmp', "$last_functionid i"]); }
 ;
 compound_statement:
       '{' '}'
@@ -684,7 +684,7 @@ postop_expression:
     | lvalue_expression.l DEC_OP 
 	{ my ($id, $ind)= getid($l, 'lac');
 	  push(@$Line, ['-1', '; tad', $id, $ind ]);
-	  push(@$Line, ['dac', $id, $ind ]);
+	  push(@$Line, ['dac', "$id $ind" ]);
 	}
 ;
 declaration_list:
@@ -838,11 +838,15 @@ sub Run {
     write_strliterals();
     push(@FinalLine, $Line);
 
+    # Do any optimisations
+    do_optimisations() if ($Optimise);
+
     # Print out the lines of code
     foreach my $lref (@FinalLine) {
       foreach my $l (@$lref) {
+	next if (!defined($l));		# Skip lines removed by optimiser
         my $line= join(' ', @$l);
-        $line= "\t" . $line if (!($l->[0]=~ m{:}));
+        $line= "   " . $line if (!($l->[0]=~ m{:}));
         print($OUT "$line\n");
       }
     }
@@ -862,6 +866,77 @@ sub Run {
     # Close the in/out files
     close($IN);
     close($OUT);
+}
+
+# List of instructions that
+# preserve the AC
+my %ACpreserve= (
+  'lac' => 1,	# Yes I know, the logic below fixes this up
+  'dac' => 1,
+  'jmp' => 1,
+  'lmq' => 1,
+  'sma' => 1,
+  'spa' => 1,
+  'sad' => 1,
+);
+
+# Try to optimise the code
+sub do_optimisations
+{
+  foreach my $lref (@FinalLine) {
+    my ($prevopcode, $prevoperand)=('','');
+    my $ac_value='';
+#print("Reset ac_value\n");
+    my $index=0;
+    foreach my $l (@$lref) {
+      my ($opcode, $operand)= @$l;
+      $operand='' if (!defined($operand));
+
+      # Destroy the AC value if this opcode doesn't preserve it
+#print("before >$opcode< $operand, ac_value $ac_value\n");
+      $ac_value='' if (!defined($ACpreserve{$opcode}));
+#print(">$opcode< $operand, ac_value $ac_value\n");
+
+      # If this is a dac and the last line was lac d0,
+      # remove the last one and make this one a dzm
+      if ($opcode eq 'dac') {
+	if (($prevoperand eq 'd0') && ($prevopcode eq 'lac')) {
+	  #$lref->[$index-1]=undef;
+	  	$lref->[$index-1]->[0]= "\t\t\" Replaced dac with dzm";
+	  	$lref->[$index-1]->[1]= '';
+	  $lref->[$index]->[0]= 'dzm';
+	}
+	$ac_value= $operand;
+      }
+
+      # If this is a lac, save the new AC value
+      if ($opcode eq 'lac') {
+	# If the AC already has this value, don't load it
+	if ($operand eq $ac_value) {
+	  #$lref->[$index]=undef;
+	  	$lref->[$index]->[0]= "\t\t\" AC value: Removed lac";
+	}
+	$ac_value= $operand;
+      }
+
+      # If this is a tad on d0, remove it
+      if (($opcode eq 'tad') && ($operand eq 'd0')) {
+	  	$lref->[$index]->[0]= "\t\t\" Removed tad";
+      }
+
+      # If this is a jmp and is the same as the last line, remobe it
+      if (($opcode eq 'jmp') && ($prevopcode eq 'jmp')) {
+	if ($operand eq $prevoperand) {
+	  #$lref->[$index]=undef;
+	  	$lref->[$index]->[0]= "\t\t\" Removed duplicate jmp";
+	}
+      }
+
+      # Save this line
+      ($prevopcode, $prevoperand)= ($opcode, $operand);
+      $index++;
+    }
+  }
 }
 
 
