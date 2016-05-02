@@ -36,6 +36,7 @@ my %Const;		# List of numeric constants used
 my @FinalLine;       	# Array of references to arrays which contain all
 		     	# the generated assembly code lines
 my @Forstack;	     	# Stack of line arrayrefs of third expressions in FOR
+my @WhileOne;		# Stack of line arrayrefs to capture while(1) stuff
 
 my %Function=(       	# List of known function identifiers
     'printn' => 'proto',
@@ -130,7 +131,7 @@ sub new_localid
 sub getid
 {
   my ($idref, $how)= @_;
-  return(undef) if (!defined($idref));
+  Die("undefined id in getid from $how") if (!defined($idref));
   my ($id, $ind, $offset)= @$idref;
   $id= "$last_functionid.$id"
 		if (defined($Local{$last_functionid}{$id}));
@@ -146,14 +147,14 @@ sub getid
     $offset= getid($offset);	# Get the real offset name
 
     # If this isn't a lac, save the current AC
-    push(@$Line, ['dac', '.temp']) if ($how ne 'lac');
+    push(@$Line, ['dac', '.temp1']) if ($how ne 'lac');
 
     # Get the pointer to the array element into ptr1
     # and then get back the saved AC
     push(@$Line, ['lac', $id]);
     push(@$Line, ['tad', "$offset"]);
     push(@$Line, ['dac', '.ptr1']);
-    push(@$Line, ['lac', '.temp']) if ($how ne 'lac');
+    push(@$Line, ['lac', '.temp1']) if ($how ne 'lac');
     $id='.ptr1'; $ind=' i';
   }
   return("$id$ind");
@@ -259,8 +260,9 @@ sub dac
 # identifier for the temporary storage
 sub tempdac
 {
-  push(@$Line, ['dac', '.temp']);
-  return([ '.temp', '' ]);
+  my $num= shift;
+  push(@$Line, ['dac', ".temp$num"]);
+  return([ ".temp$num", '' ]);
 }
 
 # Create a new constant to be written
@@ -421,21 +423,27 @@ basic_expression:
 multiplicative_expression:
       basic_expression
     | multiplicative_expression.lhs '*' basic_expression.rhs
-	{ lac($rhs);
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
+	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; mul; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '/' basic_expression.rhs
-	{ lac($rhs);
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
+	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..; lacq']);
 	  undef;
 	}
     | multiplicative_expression.lhs '%' basic_expression.rhs
-	{ lac($rhs);
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
+	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..']);
@@ -445,14 +453,18 @@ multiplicative_expression:
 additive_expression:
       multiplicative_expression
     | additive_expression.lhs '+' multiplicative_expression.rhs
-	{ lac($lhs);
-  	  push(@$Line, ['tad', getid($rhs, 'rhs')]);
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
+ 	  lac($lhs);
+  	  push(@$Line, ['tad', getid($rhs, 'rhsadd')]);
 	  undef;
 	}
     | additive_expression.lhs '-' multiplicative_expression.rhs
-	{ lac($lhs);
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
+	  lac($lhs);
   	  push(@$Line, ['cma']);
-  	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
+  	  push(@$Line, ['tad', getid($rhs, 'rhssub'), "\t\t\" sub" ]);
   	  push(@$Line, ['cma']);
 	  undef;
 	}
@@ -460,30 +472,37 @@ additive_expression:
 shift_expression:
       additive_expression
     | shift_expression.lhs LEFT_OP CONSTANT.c
-	{ lac($lhs);
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  lac($lhs);
   	  push(@$Line, ['lls', $c]);
+	  undef;
 	}
     | shift_expression.lhs RIGHT_OP CONSTANT.c
-	{ lac($lhs);
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  lac($lhs);
   	  push(@$Line, ['lrss', $c]);
+	  undef;
 	}
 ;
 bit_expression:
       shift_expression
     | bit_expression.lhs '&' shift_expression.rhs
-	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	{ $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['and', getid($rhs, 'rhs') ]);
+  	  push(@$Line, ['and', getid($rhs, 'rhsand') ]);
 	  undef;
 	}
     | bit_expression.lhs '^' shift_expression.rhs
-	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	{ $lhs= tempdac(1) if (!defined($lhs));
+          $rhs= tempdac(2) if (!defined($rhs));
 	  lac($lhs);
-  	  push(@$Line, ['xor', getid($rhs, 'rhs') ]);
+  	  push(@$Line, ['xor', getid($rhs, 'rhsxor') ]);
 	  undef;
 	}
     | bit_expression.lhs '|' shift_expression.rhs
-	{ ($rhs,$lhs)= ($lhs,$rhs) if (!defined($rhs));
+	{ $lhs= tempdac(1) if (!defined($lhs));
+          $rhs= tempdac(2) if (!defined($rhs));
 	  lac($rhs);
   	  push(@$Line, ['lmq']);
 	  lac($lhs);
@@ -492,56 +511,98 @@ bit_expression:
 	}
 ;
 relational_expression:
-      bit_expression
+      bit_expression.b
+	{ # We push thie code generated here onto the @WhileOne array.
+	  # If there is a comparison next, we drop this code.
+	  # If there is no comparison, we use this code instead.
+	  # Emit code only when the expression isn't constant 1
+	  # Emit code (but not the lac) when b is undefined: AC loaded already
+	  if (!defined($b) || (($b->[0] ne 'd1') || ($b->[1] ne ''))) {
+	    push(@WhileOne, ['lac', getid($b, 'lac')])
+				if (defined($b)); # lac() code
+	    push(@WhileOne, ['sna']);
+            push(@WhileOne, ['jmp', $lifref->[-1]->[0]]);
+	  }
+	  $b;
+	}
     | relational_expression.lhs '<' bit_expression.rhs
 	{
+	  # Empty the WhileOne array
+	  @WhileOne=();
+	  $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
 	  lac($lhs);
 	  push(@$Line, ['cma']);
-	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
+	  push(@$Line, ['tad', getid($rhs, 'rhs<') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs '>' bit_expression.rhs
 	{
+	  # Empty the WhileOne array
+	  @WhileOne=();
+	  $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
 	  lac($rhs);
 	  push(@$Line, ['cma']);
-	  push(@$Line, ['tad', getid($lhs, 'rhs') ]);
+	  push(@$Line, ['tad', getid($lhs, 'rhs>'), "\t\t\" >" ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs LE_OP bit_expression.rhs
 	{
+	  # Empty the WhileOne array
+	  @WhileOne=();
+	  $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
 	  lac($rhs);
 	  push(@$Line, ['cma']);
-	  push(@$Line, ['tad', getid($lhs, 'rhs') ]);
+	  push(@$Line, ['tad', getid($lhs, 'rhs<=') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs GE_OP bit_expression.rhs
 	{
+	  # Empty the WhileOne array
+	  @WhileOne=();
+	  $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
 	  lac($lhs);
 	  push(@$Line, ['cma']);
-	  push(@$Line, ['tad', getid($rhs, 'rhs') ]);
+	  push(@$Line, ['tad', getid($rhs, 'rhs>=') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
     | relational_expression.lhs EQ_OP bit_expression.rhs
 	{
-	  my $third= new_label();
-	  lac($lhs);
-	  push(@$Line, ['sad', getid($rhs, 'rhs') ]);
-          push(@$Line, ['jmp', $third]);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
-          push(@$Line, ["$third:"]);
+	  # Empty the WhileOne array
+	  @WhileOne=();
+	  # Don't generate any code if lhs == rhs, e.g. 1 == 1
+	  if(($lhs->[0] eq $rhs->[0]) && ($lhs->[1] eq $rhs->[1])) {
+            push(@$Line, ["\t\t\" 1==1, so no code"]);
+	  } else {
+	    my $third= new_label();
+	    # If AC is already loaded, save it temporarily
+	    $rhs= tempdac(1) if (!defined($rhs));
+	    lac($lhs);
+	    push(@$Line, ['sad', getid($rhs, 'rhs==') ]);
+            push(@$Line, ['jmp', $third]);
+            push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+            push(@$Line, ["$third:"]);
+	  }
 	}
     | relational_expression.lhs NE_OP bit_expression.rhs
 	{
+	  # Empty the WhileOne array
+	  @WhileOne=();
+	  $lhs= tempdac(1) if (!defined($lhs));
+	  $rhs= tempdac(2) if (!defined($rhs));
 	  lac($lhs);
-	  push(@$Line, ['sad', getid($rhs, 'rhs') ]);
+	  push(@$Line, ['sad', getid($rhs, 'rhs!=') ]);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
 ;
@@ -586,7 +647,11 @@ if_head:
           push(@ifstack, [ $false, $end ]);
 	  $lifref= \@ifstack;
         }
-      '(' relational_expression ')' statement 
+      '(' relational_expression ')'
+	{ # Copy any @WhileOne code onto $line
+	  push(@$Line, @WhileOne); @WhileOne=();
+	}
+      statement 
 ;
 iteration_statement:
       WHILE
@@ -598,6 +663,9 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       '(' relational_expression ')'
+	{ # Copy any @WhileOne code onto $line
+	  push(@$Line, @WhileOne); @WhileOne=();
+	}
       statement
         { push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
@@ -612,7 +680,9 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       statement WHILE '(' relational_expression ')' ';'
-        { push(@$Line, ['jmp', $loopstack[-1]->[1]]);
+	{ # Copy any @WhileOne code onto $line
+	  push(@$Line, @WhileOne); @WhileOne=();
+	  push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
 	}
@@ -626,7 +696,10 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       relational_expression ';'
-        { # Move all the current lines over to FinalLine
+	{ # Copy any @WhileOne code onto $line
+	  push(@$Line, @WhileOne); @WhileOne=();
+
+          # Move all the current lines over to FinalLine
           # and empty $Line for the third statement
           push(@FinalLine, $Line); $Line= [];
         }
@@ -822,14 +895,15 @@ sub Run {
     $Basename =~ s/\.[a-z]$//;
 
     # Open the in/out files
-    open( $IN, "-|", "cpp -nostdinc $infile")
+    open( $IN, "-|", "cpp -nostdinc -DH_LANG $infile")
     				|| die("Cannot open $infile: $!");
     my $outfile = $Basename . ".s";
     open( $OUT, ">", $outfile ) || die("Cannot write $outfile: $!");
     $incomment  = 0;
     $linenumber = 0;
 
-    new_globalid('.temp','',[0]);
+    new_globalid('.temp1','',[0]);
+    new_globalid('.temp2','',[0]);
     new_globalid('.ptr1','',[0]);
 
     # Parse the class which is in this file

@@ -21,5 +21,11 @@ test: h.pm
 otest: h.pm
 	(cd tests; ./runtests -O)
 
+roff.s: h.pm roff.c
+	./h.pm roff.c
+
+roff: roff.s
+	./as7 -n -o roff roff.s hrt.s
+
 clean:
-	rm -f h.pm hello.s hello
+	rm -f h.pm hello.s hello roff.s roff n.out
