@@ -18,25 +18,29 @@ use Data::Dumper;
 my ( $IN, $OUT );    	# Filehandles for input & output files
 my $Basename;        	# Basename of both files
 my @TokenQueue;      	# Stack of tokens not yet read
-my $incomment;       	# Are we in a multi-line comment?
-my $linenumber;      	# What line number we are on
-my $Optimise=0;		# Are optimisations turned on?
+my $Incomment;       	# Are we in a multi-line comment?
+my $Linenumber;      	# What line number we are on
+my $Optimise=1;		# Are optimisations turned on?
 my @Constlist;       	# List of constants in array initialisation
 my %Global;          	# List of known global identifiers
+my @GlobaLine;		# Output lines for the globals
 my %Local;           	# List of known per-function identifiers
 		     	# ->{fnname}->{id}
-my %PPosn= (	     	# The parameter names at each position for each function
+my %PPosn= (	     	# The parameter names and position for each function
  'putchar' => [ 'c' ],
  'printn'  => [ 'n' ],
 );
 
-my $last_functionid="";	# Name of the last function that was created
-my $calledfn="";	# Name of function being called, needed for arguments
+my $Last_functionid="";	# Name of the last function that was created
+my $Calledfn="";	# Name of function being called, needed for arguments
 my %Const;		# List of numeric constants used
 my @FinalLine;       	# Array of references to arrays which contain all
 		     	# the generated assembly code lines
 my @Forstack;	     	# Stack of line arrayrefs of third expressions in FOR
-my @WhileOne;		# Stack of line arrayrefs to capture while(1) stuff
+			# List of temp locations. We shift to get one,
+			# unshift to return it
+my @Templocn;
+my $Tempnum= 20;	# Number of available temporary locations
 
 my %Function=(       	# List of known function identifiers
     'printn' => 'proto',
@@ -74,7 +78,7 @@ my %Syscall= (
 sub Die
 {
   my $err= shift;
-  print(STDERR "$err on $Basename.h line $linenumber\n");
+  print(STDERR "$err on $Basename.h line $Linenumber\n");
   exit(1);
 }
 
@@ -90,17 +94,17 @@ sub new_globalid
 
   # Arrays: also create a pointer to the array base
   if ($type eq "array") {
-    push(@$Line, [ "$id: $id.base"]);
-    push(@$Line, [ "$id.base:"]);
+    push(@GlobaLine, "$id: $id.base");
+    push(@GlobaLine, "$id.base:");
   } else {
-    push(@$Line, [ "$id:"]);
+    push(@GlobaLine, "$id:");
   }
   foreach my $val (@$valref) {
-    push(@$Line, [ "   $val"]);
+    push(@GlobaLine, "   $val");
   }
 }
 
-my $nextpnum;			# The position of the next parameter
+my $Nextpnum;			# The position of the next parameter
 
 # Declare a new local identifier for the current function
 sub new_localid
@@ -113,8 +117,8 @@ sub new_localid
     if ($Function{$fn} eq 'proto') {
       # However, check that it's in the same position
       Die("$fn: $id not in same position as prototype")
-	if ($PPosn{$fn}[$nextpnum] ne $id);
-      $nextpnum++; return;
+	if ($PPosn{$fn}[$Nextpnum] ne $id);
+      $Nextpnum++; return;
     }
 
     Die("$fn: $id local already declared");
@@ -122,7 +126,7 @@ sub new_localid
 
   # Define the local and store its position
   $Local{$fn}{$id}=1;
-  $PPosn{$fn}[$nextpnum++]= $id;
+  $PPosn{$fn}[$Nextpnum++]= $id;
 }
 
 # Given an identifier arrayref, see if this is a local or
@@ -133,8 +137,14 @@ sub getid
   my ($idref, $how)= @_;
   Die("undefined id in getid from $how") if (!defined($idref));
   my ($id, $ind, $offset)= @$idref;
-  $id= "$last_functionid.$id"
-		if (defined($Local{$last_functionid}{$id}));
+
+  # Free up a temporary location
+  
+  if ($id=~ m{^.temp\d$}) {
+    unshift(@Templocn, $id);
+  }
+  $id= "$Last_functionid.$id"
+		if (defined($Local{$Last_functionid}{$id}));
 
   # Arrays are hard because we have to create a pointer to
   # the element, and then we can return the pointer. We may
@@ -147,18 +157,19 @@ sub getid
     $offset= getid($offset);	# Get the real offset name
 
     # If this isn't a lac, save the current AC
-    push(@$Line, ['dac', '.temp1']) if ($how ne 'lac');
+    my $temp= tempdac() if ($how ne 'lac');
 
     # Get the pointer to the array element into ptr1
     # and then get back the saved AC
     push(@$Line, ['lac', $id]);
     push(@$Line, ['tad', "$offset"]);
-    push(@$Line, ['dac', '.ptr1']);
-    push(@$Line, ['lac', '.temp1']) if ($how ne 'lac');
-    $id='.ptr1'; $ind=' i';
+    push(@$Line, ['dac', '.ptr']);
+    lac($temp) if ($how ne 'lac');
+    $id='.ptr'; $ind=' i';
   }
   return("$id$ind");
 }
+
 
 #### LABEL CODE
 my @loopstack;	# Stack of labels for each loop
@@ -183,15 +194,15 @@ sub new_functionid
   Die("$id function already declared")
 	if (defined($Function{$id}) && $Function{$id} eq "real");
   $Function{$id}=$definition;
-  $nextpnum=0;		# Params for this function start at 0
-  $last_functionid=$id;
+  $Nextpnum=0;		# Params for this function start at 0
+  $Last_functionid=$id;
 }
 
 # Print out the label of the function just created
 sub print_function_label
 {
-  $Function{$last_functionid}= 'real';
-  push(@$Line, [ "$last_functionid: 0" ]);
+  $Function{$Last_functionid}= 'real';
+  push(@$Line, [ "$Last_functionid: 0" ]);
 }
 
 # Check and return a function name. Translate system calls to
@@ -225,21 +236,14 @@ sub add_strliteral
   return($label);
 }
 
-# Write out all the string literals and their labels
-sub write_strliterals
-{
-  foreach my $sref (@Stringlit) {
-    my ($s, $label)= @$sref;
-    push(@$Line, ["$label: $label.base"]);
-    push(@$Line, ["$label.base:"]);
-    foreach my $i (0 .. length($s)-1) {
-      push(@$Line, ["   " . ord( substr($s, $i, 1))]);
-    }
-    push(@$Line, ["0"]);
-  }
-}
-
 ### PDP-7 specific code
+#
+# When I first wrote the compiler, I thought I could keep the
+# last expression result in the AC. This doesn't work for
+# exprssions like if (x + 2 > y - 4). Now, every expression is
+# saved in a temporary location and reloaded as required. We
+# rely on the optimiser to remove pointless store/loads.
+#
 # Expand an identifier and load it into the AC
 sub lac
 {
@@ -256,13 +260,23 @@ sub dac
   push(@$Line, ['dac', getid($id, 'dac')]);
 }
 
+# Reset the temporary locations
+sub reset_temp_locations
+{
+  @Templocn= ();
+  foreach my $i (1 .. $Tempnum) {
+    push(@Templocn, ".temp$i");
+  }
+}
+
 # Temporarily store the AC and return an
 # identifier for the temporary storage
 sub tempdac
 {
-  my $num= shift;
-  push(@$Line, ['dac', ".temp$num"]);
-  return([ ".temp$num", '' ]);
+  Die("out of temp locations") if (@Templocn==0);
+  my $temp= shift(@Templocn);
+  push(@$Line, ['dac', $temp]);
+  return([ $temp, '' ]);
 }
 
 # Create a new constant to be written
@@ -302,9 +316,9 @@ global_declaration:
 ;
 local_declaration:
       type_declarator.p ';'
-	{ new_localid($last_functionid, $p); }
+	{ new_localid($Last_functionid, $p); }
     | type_declarator.p '=' bit_expression.e ';' 
-	{ new_localid($last_functionid, $p);
+	{ new_localid($Last_functionid, $p);
 	  lac($e); dac([$p,'']);
 	}
 ;
@@ -353,9 +367,11 @@ pointer:
 function_definition:
       function_declarator ';'
     | function_declarator
-	{ print_function_label(); }
+	{ print_function_label();
+	  reset_temp_locations();
+	}
       compound_statement
-	{ push(@$Line, ['jmp', "$last_functionid i"]); }
+	{ push(@$Line, ['jmp', "$Last_functionid i"]); }
 ;
 function_declarator:
       type_declarator.f '(' ')'
@@ -370,26 +386,26 @@ parameter_list:
 ;
 parameter_declaration:
       type_declarator.p 
-	{ new_localid($last_functionid, $p); }
+	{ new_localid($Last_functionid, $p); }
 ;
 function_expression:
       IDENTIFIER.f '(' ')'
-	{ push(@$Line, ['jms', get_functionid($f) ]); undef; }
+	{ push(@$Line, ['jms', get_functionid($f) ]); tempdac(); }
     | IDENTIFIER.f '('
-	{ $nextpnum=0; $calledfn= $f; }
+	{ $Nextpnum=0; $Calledfn= $f; }
       argument_list ')' 
-	{ push(@$Line, ['jms', get_functionid($f) ]); undef; }
+	{ push(@$Line, ['jms', get_functionid($f) ]); tempdac(); }
 ;
 argument_list:
       argument.a
 	{ # Get the name of the function's param at this position
-	  my $pname= $PPosn{$calledfn}[$nextpnum++];
-	  lac($a); dac(["$calledfn.$pname",'']);
+	  my $pname= $PPosn{$Calledfn}[$Nextpnum++];
+	  lac($a); dac(["$Calledfn.$pname",'']);
 	}
     | argument_list ',' argument.a
 	{ # Get the name of the function's param at this position
-	  my $pname= $PPosn{$calledfn}[$nextpnum++];
-	  lac($a); dac(["$calledfn.$pname",'']);
+	  my $pname= $PPosn{$Calledfn}[$Nextpnum++];
+	  lac($a); dac(["$Calledfn.$pname",'']);
 	}
 ;
 
@@ -417,120 +433,101 @@ argument:
 basic_expression:
       argument
     | function_expression
-    | '(' bit_expression.e ')'
-	{ $e; }
+    | '(' bit_expression.b ')'
+	{ $b; }
 ;
+# If an lhs or a rhs comes in undefined, this means that
+# we have that result already in the AC.
 multiplicative_expression:
       basic_expression
     | multiplicative_expression.lhs '*' basic_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; mul; ..; lacq']);
-	  undef;
+	  tempdac();
 	}
     | multiplicative_expression.lhs '/' basic_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..; lacq']);
-	  undef;
+	  tempdac();
 	}
     | multiplicative_expression.lhs '%' basic_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
 	  lac($lhs);
   	  push(@$Line, ['cll; idiv; ..']);
-	  undef;
+	  tempdac();
 	}
 ;
 additive_expression:
       multiplicative_expression
     | additive_expression.lhs '+' multiplicative_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
- 	  lac($lhs);
+	{ 
+	  lac($lhs);
   	  push(@$Line, ['tad', getid($rhs, 'rhsadd')]);
-	  undef;
+	  tempdac();
 	}
     | additive_expression.lhs '-' multiplicative_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+	{ 
 	  lac($lhs);
   	  push(@$Line, ['cma']);
-  	  push(@$Line, ['tad', getid($rhs, 'rhssub'), "\t\t\" sub" ]);
+  	  push(@$Line, ['tad', getid($rhs, 'rhssub')]);
   	  push(@$Line, ['cma']);
-	  undef;
+	  tempdac();
 	}
 ;
 shift_expression:
       additive_expression
     | shift_expression.lhs LEFT_OP CONSTANT.c
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  lac($lhs);
+	{ lac($lhs);
   	  push(@$Line, ['lls', $c]);
-	  undef;
+	  tempdac();
 	}
     | shift_expression.lhs RIGHT_OP CONSTANT.c
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  lac($lhs);
+	{ lac($lhs);
   	  push(@$Line, ['lrss', $c]);
-	  undef;
+	  tempdac();
 	}
 ;
 bit_expression:
       shift_expression
     | bit_expression.lhs '&' shift_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+	{ 
 	  lac($lhs);
   	  push(@$Line, ['and', getid($rhs, 'rhsand') ]);
-	  undef;
+	  tempdac();
 	}
     | bit_expression.lhs '^' shift_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-          $rhs= tempdac(2) if (!defined($rhs));
+	{ 
 	  lac($lhs);
   	  push(@$Line, ['xor', getid($rhs, 'rhsxor') ]);
-	  undef;
+	  tempdac();
 	}
     | bit_expression.lhs '|' shift_expression.rhs
-	{ $lhs= tempdac(1) if (!defined($lhs));
-          $rhs= tempdac(2) if (!defined($rhs));
+	{ 
 	  lac($rhs);
   	  push(@$Line, ['lmq']);
 	  lac($lhs);
   	  push(@$Line, ['omq']);
-	  undef;
+	  tempdac();
 	}
 ;
 relational_expression:
       bit_expression.b
-	{ # We push thie code generated here onto the @WhileOne array.
-	  # If there is a comparison next, we drop this code.
-	  # If there is no comparison, we use this code instead.
-	  # Emit code only when the expression isn't constant 1
-	  # Emit code (but not the lac) when b is undefined: AC loaded already
-	  if (!defined($b) || (($b->[0] ne 'd1') || ($b->[1] ne ''))) {
-	    push(@WhileOne, ['lac', getid($b, 'lac')])
-				if (defined($b)); # lac() code
-	    push(@WhileOne, ['sna']);
-            push(@WhileOne, ['jmp', $lifref->[-1]->[0]]);
-	  }
-	  $b;
+	{ 
+	  lac($b);
+	  push(@$Line, ['lac', getid($b, 'lac')]);
+	  push(@$Line, ['sna']);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
-    | relational_expression.lhs '<' bit_expression.rhs
-	{
-	  # Empty the WhileOne array
-	  @WhileOne=();
-	  $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+    | bit_expression.lhs '<' bit_expression.rhs
+	{ 
 	  lac($lhs);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['tad', getid($rhs, 'rhs<') ]);
@@ -538,38 +535,26 @@ relational_expression:
 	  push(@$Line, ['sma']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
-    | relational_expression.lhs '>' bit_expression.rhs
-	{
-	  # Empty the WhileOne array
-	  @WhileOne=();
-	  $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+    | bit_expression.lhs '>' bit_expression.rhs
+	{ 
 	  lac($rhs);
 	  push(@$Line, ['cma']);
-	  push(@$Line, ['tad', getid($lhs, 'rhs>'), "\t\t\" >" ]);
+	  push(@$Line, ['tad', getid($lhs, 'lhs>')]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
-    | relational_expression.lhs LE_OP bit_expression.rhs
-	{
-	  # Empty the WhileOne array
-	  @WhileOne=();
-	  $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+    | bit_expression.lhs LE_OP bit_expression.rhs
+	{ 
 	  lac($rhs);
 	  push(@$Line, ['cma']);
-	  push(@$Line, ['tad', getid($lhs, 'rhs<=') ]);
+	  push(@$Line, ['tad', getid($lhs, 'lhs<=') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
-    | relational_expression.lhs GE_OP bit_expression.rhs
-	{
-	  # Empty the WhileOne array
-	  @WhileOne=();
-	  $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+    | bit_expression.lhs GE_OP bit_expression.rhs
+	{ 
 	  lac($lhs);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['tad', getid($rhs, 'rhs>=') ]);
@@ -577,30 +562,17 @@ relational_expression:
 	  push(@$Line, ['spa']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
-    | relational_expression.lhs EQ_OP bit_expression.rhs
+    | bit_expression.lhs EQ_OP bit_expression.rhs
 	{
-	  # Empty the WhileOne array
-	  @WhileOne=();
-	  # Don't generate any code if lhs == rhs, e.g. 1 == 1
-	  if(($lhs->[0] eq $rhs->[0]) && ($lhs->[1] eq $rhs->[1])) {
-            push(@$Line, ["\t\t\" 1==1, so no code"]);
-	  } else {
-	    my $third= new_label();
-	    # If AC is already loaded, save it temporarily
-	    $rhs= tempdac(1) if (!defined($rhs));
-	    lac($lhs);
-	    push(@$Line, ['sad', getid($rhs, 'rhs==') ]);
-            push(@$Line, ['jmp', $third]);
-            push(@$Line, ['jmp', $lifref->[-1]->[0]]);
-            push(@$Line, ["$third:"]);
-	  }
+	  my $third= new_label();
+	  lac($lhs);
+	  push(@$Line, ['sad', getid($rhs, 'rhs==') ]);
+          push(@$Line, ['jmp', $third]);
+          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ["$third:"]);
 	}
-    | relational_expression.lhs NE_OP bit_expression.rhs
-	{
-	  # Empty the WhileOne array
-	  @WhileOne=();
-	  $lhs= tempdac(1) if (!defined($lhs));
-	  $rhs= tempdac(2) if (!defined($rhs));
+    | bit_expression.lhs NE_OP bit_expression.rhs
+	{ 
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs!=') ]);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
@@ -623,7 +595,7 @@ labeled_statement:
 ;
 assignment_statement:
     lvalue_expression.l '=' bit_expression.e
-	{ lac($e); dac($l); }
+	{ lac($e); dac($l); reset_temp_locations(); }
 ;
 selection_statement:
       if_head %prec WEAK
@@ -648,9 +620,7 @@ if_head:
 	  $lifref= \@ifstack;
         }
       '(' relational_expression ')'
-	{ # Copy any @WhileOne code onto $line
-	  push(@$Line, @WhileOne); @WhileOne=();
-	}
+	{ reset_temp_locations(); }
       statement 
 ;
 iteration_statement:
@@ -663,13 +633,11 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       '(' relational_expression ')'
-	{ # Copy any @WhileOne code onto $line
-	  push(@$Line, @WhileOne); @WhileOne=();
-	}
       statement
         { push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
+	  reset_temp_locations();
 	}
     | DO
         { # Generate start and end labels for this loop
@@ -680,11 +648,10 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       statement WHILE '(' relational_expression ')' ';'
-	{ # Copy any @WhileOne code onto $line
-	  push(@$Line, @WhileOne); @WhileOne=();
-	  push(@$Line, ['jmp', $loopstack[-1]->[1]]);
+	{ push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
+	  reset_temp_locations();
 	}
     | FOR
       '(' assignment_statement ';'
@@ -696,12 +663,10 @@ iteration_statement:
           push(@$Line, ["$start:"]);
         }
       relational_expression ';'
-	{ # Copy any @WhileOne code onto $line
-	  push(@$Line, @WhileOne); @WhileOne=();
-
-          # Move all the current lines over to FinalLine
+	{ # Move all the current lines over to FinalLine
           # and empty $Line for the third statement
           push(@FinalLine, $Line); $Line= [];
+	  reset_temp_locations();
         }
       third_for_expression ')' statement
         {
@@ -737,9 +702,9 @@ jump_statement:
     | BREAK ';'
 	{ push(@$Line, ['jmp', $loopstack[-1]->[0]]); }
     | RETURN ';'
-	{ push(@$Line, ['jmp', "$last_functionid i"]); }
+	{ push(@$Line, ['jmp', "$Last_functionid i"]); }
     | RETURN '(' bit_expression.e ')' ';' 
-	{ lac($e); push(@$Line, ['jmp', "$last_functionid i"]); }
+	{ lac($e); push(@$Line, ['jmp', "$Last_functionid i"]); }
 ;
 compound_statement:
       '{' '}'
@@ -753,11 +718,13 @@ postop_expression:
       lvalue_expression.l INC_OP
 	{ push(@$Line, ['isz', getid($l, 'lac') ]); 
 	  push(@$Line, ['nop']); 
+	  reset_temp_locations();
 	}
     | lvalue_expression.l DEC_OP 
 	{ my ($id, $ind)= getid($l, 'lac');
 	  push(@$Line, ['-1', '; tad', $id, $ind ]);
 	  push(@$Line, ['dac', "$id $ind" ]);
+	  reset_temp_locations();
 	}
 ;
 declaration_list:
@@ -776,7 +743,7 @@ $Parse::Eyapp::Node::INDENT = 2;
 
 sub _Error {
     print("Token " . $_[0]->YYCurval .
-          " unexpected on line $linenumber of $Basename.a\n");
+          " unexpected on line $Linenumber of $Basename.a\n");
     print("Expecting one of: " . join(' ', $_[0]->YYExpect) . "\n");
 }
 
@@ -794,13 +761,13 @@ sub _Lexer {
 
       # No tokens, so read a line in. Exit if no lines left
       $_= <$IN> || return('',undef);
-      $linenumber++;
+      $Linenumber++;
 
       # Pre-processor line
       if (m{^#}) {
 	# Pre-processor current line number
         if (m{^#\s*(\d+)}) {
-          $linenumber= $1-1;
+          $Linenumber= $1-1;
 	}
 	# Read in another line
         next;
@@ -811,14 +778,14 @@ sub _Lexer {
 
       # Break the line up into tokens
       while ($_) {
-        if ($incomment) {
+        if ($Incomment) {
           # If we find the end of a multi-line comment, mark out
-          if (s{.*\*/\s*}{}) { $incomment = 0; next; }
+          if (s{.*\*/\s*}{}) { $Incomment = 0; next; }
           # Didn't find one, so get out of this line loop
           # as the whole line is part of the comment.
           last;
         }
-        if (s{^/\*\s*}{}) { $incomment = 1; next; }
+        if (s{^/\*\s*}{}) { $Incomment = 1; next; }
         if (s{^([A-Za-z_][A-Za-z0-9_]*)\s*}{}) {
           # Push a keyword if found
           if ($Keyword{$1}) { push(@TokenQueue,[$Keyword{$1},$1]); next; }
@@ -899,17 +866,20 @@ sub Run {
     				|| die("Cannot open $infile: $!");
     my $outfile = $Basename . ".s";
     open( $OUT, ">", $outfile ) || die("Cannot write $outfile: $!");
-    $incomment  = 0;
-    $linenumber = 0;
+    $Incomment  = 0;
+    $Linenumber = 0;
 
-    new_globalid('.temp1','',[0]);
-    new_globalid('.temp2','',[0]);
-    new_globalid('.ptr1','',[0]);
+    # Create the temporary locations
+    foreach my $i (1 .. $Tempnum) {
+      new_globalid(".temp$i",'',[0]);
+    }
+    new_globalid('.ptr','',[0]);
 
     # Parse the class which is in this file
     my $t= $self->YYParse( yylex => \&_Lexer, yyerror => \&_Error);
 
-    write_strliterals();
+
+    # Add any remianing lines to the final set of lines of code
     push(@FinalLine, $Line);
 
     # Do any optimisations
@@ -925,6 +895,11 @@ sub Run {
       }
     }
 
+    # Print out the global variables
+    foreach my $line (@GlobaLine) {
+        print($OUT "$line\n");
+    }
+
     # Print out constants
     foreach my $c (keys(%Const)) {
       print($OUT "$c: $Const{$c}\n");
@@ -937,13 +912,24 @@ sub Run {
       }
     }
 
+    # Write out the string literals, null terminated
+    foreach my $sref (@Stringlit) {
+      my ($s, $label)= @$sref;
+      print($OUT "$label: $label.base\n");
+      print($OUT "$label.base:\n");
+      foreach my $i (0 .. length($s)-1) {
+        print($OUT "   " . ord(substr($s, $i, 1)) . "\n");
+      }
+      print($OUT "0\n");
+    }
+
     # Close the in/out files
     close($IN);
     close($OUT);
 }
 
-# List of instructions that
-# preserve the AC
+# List of instructions that preserve the AC
+# Used by the optimiser below
 my %ACpreserve= (
   'lac' => 1,	# Yes I know, the logic below fixes this up
   'dac' => 1,
@@ -958,57 +944,84 @@ my %ACpreserve= (
 sub do_optimisations
 {
   foreach my $lref (@FinalLine) {
-    my ($prevopcode, $prevoperand)=('','');
-    my $ac_value='';
-#print("Reset ac_value\n");
-    my $index=0;
-    foreach my $l (@$lref) {
-      my ($opcode, $operand)= @$l;
-      $operand='' if (!defined($operand));
 
-      # Destroy the AC value if this opcode doesn't preserve it
-#print("before >$opcode< $operand, ac_value $ac_value\n");
-      $ac_value='' if (!defined($ACpreserve{$opcode}));
-#print(">$opcode< $operand, ac_value $ac_value\n");
+    # We loop until there were no optimisations.
+    # This is because one optimisation will allow
+    # a futher optimisation.
+    while (1) {
+      my ($prevopcode, $prevoperand, $previndex)=('','',-100);
+      my $ac_value='';
+      my $index=0;
+      my $no_optimisation=1;
+      foreach my $l (@$lref) {
+	if (!defined($l)) {
+	  $index++; next;
+ 	}
+        my ($opcode, $operand)= @$l;
+	# print("$index: $opcode, $operand; no_optim is $no_optimisation\n");
+        $operand='' if (!defined($operand));
 
-      # If this is a dac and the last line was lac d0,
-      # remove the last one and make this one a dzm
-      if ($opcode eq 'dac') {
-	if (($prevoperand eq 'd0') && ($prevopcode eq 'lac')) {
-	  #$lref->[$index-1]=undef;
-	  	$lref->[$index-1]->[0]= "\t\t\" Replaced dac with dzm";
-	  	$lref->[$index-1]->[1]= '';
-	  $lref->[$index]->[0]= 'dzm';
+        # Destroy the AC value if this opcode doesn't preserve it
+        $ac_value='' if (!defined($ACpreserve{$opcode}));
+
+	# Remove two cma ops in a row
+        if (($opcode eq 'cma') && ($prevopcode eq 'cma')) {
+	  $lref->[$previndex]=undef;
+	  $lref->[$index]=undef;
+	  $opcode=''; $operand='';
+	  $no_optimisation=0;
 	}
-	$ac_value= $operand;
-      }
 
-      # If this is a lac, save the new AC value
-      if ($opcode eq 'lac') {
-	# If the AC already has this value, don't load it
-	if ($operand eq $ac_value) {
-	  #$lref->[$index]=undef;
-	  	$lref->[$index]->[0]= "\t\t\" AC value: Removed lac";
-	}
-	$ac_value= $operand;
-      }
+        # If this is a dac and the last line was lac d0,
+        # remove the last one and make this one a dzm
+        if ($opcode eq 'dac') {
+	  if (($prevoperand eq 'd0') && ($prevopcode eq 'lac')) {
+	    $lref->[$previndex]=undef;
+	    $opcode='dzm';
+	    $lref->[$index]->[0]= $opcode;
+	    $no_optimisation=0;
+	  }
+	  $ac_value= $operand;
+        }
 
-      # If this is a tad on d0, remove it
-      if (($opcode eq 'tad') && ($operand eq 'd0')) {
-	  	$lref->[$index]->[0]= "\t\t\" Removed tad";
-      }
+        # If there is a dac temp/lac temp pair, remove both of them
+        if (($opcode eq 'lac') && ($prevopcode eq 'dac')
+		&& ($operand eq $prevoperand) && ($operand=~ m{^\.temp\d+$})) {
+	  $lref->[$previndex]=undef;
+	  $lref->[$index]=undef;
+	  $opcode=''; $operand='';
+	  $no_optimisation=0;
+        }
 
-      # If this is a jmp and is the same as the last line, remobe it
-      if (($opcode eq 'jmp') && ($prevopcode eq 'jmp')) {
-	if ($operand eq $prevoperand) {
-	  #$lref->[$index]=undef;
-	  	$lref->[$index]->[0]= "\t\t\" Removed duplicate jmp";
-	}
-      }
+        # If this is a lac, save the new AC value
+        if ($opcode eq 'lac') {
+	  # If the AC already has this value, don't load it
+	  if ($operand eq $ac_value) {
+	    $lref->[$index]=undef; $opcode='';
+	    $no_optimisation=0;
+	  }
+	  $ac_value= $operand;
+        }
 
-      # Save this line
-      ($prevopcode, $prevoperand)= ($opcode, $operand);
-      $index++;
+        # If this is a tad on d0, remove it
+        if (($opcode eq 'tad') && ($operand eq 'd0')) {
+	    $lref->[$index]=undef; $opcode='';
+	    $no_optimisation=0;
+        }
+
+        # If this is a jmp and is the same as the last line, remove it
+        if (($opcode eq 'jmp') && ($prevopcode eq 'jmp')) {
+	  if ($operand eq $prevoperand) {
+	    $lref->[$index]=undef;
+	    $no_optimisation=0;
+	  }
+        }
+
+        # Save this line
+        ($prevopcode, $prevoperand, $previndex)= ($opcode, $operand, $index);
+        $index++;
+      }
+      last if ($no_optimisation);
     }
   }
 }
@@ -1017,14 +1030,14 @@ sub do_optimisations
 ### MAIN PROGRAM ###
 
 # Error if no argument
-die("Usage: $0 [-O] file.h\n") if (@ARGV < 1);
+die("Usage: $0 [-nopt] file.h\n") if (@ARGV < 1);
 
 # Get any optional arguments
 while ( defined( $ARGV[0] ) && ( $ARGV[0] =~ m{^-} ) ) {
 
-    # -O: optimise
-    if ( $ARGV[0] eq "-O" ) {
-        $Optimise = 1;
+    # -nopt: disable optimisations
+    if ( $ARGV[0] eq "-nopt" ) {
+        $Optimise = 0;
         shift(@ARGV);
     }
 }

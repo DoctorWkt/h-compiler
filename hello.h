@@ -1,37 +1,32 @@
+char str1[]= "This is my first string\n";
+
+void puts(char *c)
+{
+  while (*c) {
+    putchar(*c); c++;
+  }
+}
+
+int strlen(char *c)
+{
+  int n=0;
+  while (*c) {
+    c++; n++;
+  }
+  return(n);
+}
+
 void main()
 {
-  int x;
-  int y=4;
+  int len;
+  int x=1;
 
-  for (x=0; x != 8; x++) {
-    if (x<y)
-      putchar('<');
-    printn(x);
-  }
-  putchar('\n');
+  puts(str1);
+  len= strlen(str1);
+  printn(len);
 
-  for (x=0; x != 8; x++) {
-    if (x>=y) {
-      putchar('>');
-      putchar('=');
-    }
-    printn(x);
-  }
-  putchar('\n');
-
-  for (x=0; x != 8; x++) {
-    if (x>y) {
-      putchar('>');
-    }
-    printn(x);
-  }
-  putchar('\n');
-
-  for (x=0; x != 8; x++) {
-    if (x<=y) {
-      putchar('<');
-      putchar('=');
-    }
-    printn(x);
+  while (1) {
+    printn(x); x++;
+    if (x==8) break;
   }
 }

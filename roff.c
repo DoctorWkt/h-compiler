@@ -210,28 +210,9 @@ void bumpword()
 {
   char *x;
   *holdp = '\0';
-/*
- *	Tutelman's fix #1, modified by the Colonel.
- */
-/*
- *	We use a while-loop in case of ridiculously long words with
- *	multiple hyphenation indicators.
- */
   if (assylen + strlen(holdword) > o_ll - o_in) {
-		while (assylen + strlen(holdword) > o_ll - o_in) {
-
-/*
- *	If no hyphenation marks, give up.
- *	Let somebody else implement it.
- */
-				writeline(o_ad, 0);
-				goto giveup;
-		}		/* while */
+	writeline(o_ad, 0);
   }
-giveup:
-/*
- *	remove hyphenation marks, even if hyphenation is disabled.
- */
   x= assyline+assylen;
   strcpy(x, holdword);
   assylen = assylen + strlen(holdword);

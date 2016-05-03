@@ -1,7 +1,0 @@
-#!/bin/sh
-if [ ! -f ../roff ]
-then echo "No executable ../roff"; exit 1
-fi
-../a7out ../roff < cat.1 > $$.out
-diff cat.out $$.out
-rm -f $$.out
