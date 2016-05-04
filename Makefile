@@ -9,7 +9,7 @@ hello.s: hello.h h.pm
 
 # Build a single program; used for testing
 hello: hello.s hrt.s
-	./as7 -o hello hello.s hrt.s
+	./as7 -o hello hrt.s hello.s
 
 # Debug the program under test
 debug: hello
@@ -32,7 +32,7 @@ roff.s: h.pm roff.c
 
 # Build the PDP-7 roff binary
 roff: roff.s
-	./as7 -n -o roff roff.s hrt.s
+	./as7 -n -o roff hrt.s roff.s
 
 # Run the roff binary on sample input
 rtest: roff

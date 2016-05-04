@@ -29,6 +29,19 @@ my %Local;           	# List of known per-function identifiers
 my %PPosn= (	     	# The parameter names and position for each function
  'putchar' => [ 'c' ],
  'printn'  => [ 'n' ],
+ 'open'    => [ 'buf', 'how' ],
+ 'read'    => [ 'fd', 'buf', 'cnt' ],
+ 'write'   => [ 'fd', 'buf', 'cnt' ],
+ 'close'   => [ 'fd' ],
+ 'creat'   => [ 'buf' ],
+ 'seek'    => [ 'fd', 'offset', 'how' ],
+ 'link'    => [ 'dir', 'src', 'dst' ],
+ 'unlink'  => [ 'buf' ],
+ 'setuid'  => [ 'uid' ],
+ 'rename'  => [ 'old', 'new' ],
+ 'chdir'   => [ 'dir' ],
+ 'chmod'   => [ 'file', 'mode' ],
+ 'chown'   => [ 'file', 'uid' ],
 );
 
 my $Last_functionid="";	# Name of the last function that was created
@@ -43,10 +56,26 @@ my @Templocn;
 my $Tempnum= 20;	# Number of available temporary locations
 
 my %Function=(       	# List of known function identifiers
-    'printn' => 'proto',
+    'printn'  => 'proto',
     'getchar' => 'proto',
     'putchar' => 'proto',
-    '.exit' => 'proto',
+    '.exit'   => 'proto',
+    '.open'   => 'proto',
+    '.read'   => 'proto',
+    '.write'  => 'proto',
+    '.close'  => 'proto',
+    '.getuid' => 'proto',
+    '.creat'  => 'proto',
+    '.seek'   => 'proto',
+    '.link'   => 'proto',
+    '.unlink' => 'proto',
+    '.setuid' => 'proto',
+    '.rename' => 'proto',
+    '.time'   => 'proto',
+    '.chdir'  => 'proto',
+    '.chmod'  => 'proto',
+    '.chown'  => 'proto',
+    '.fork'   => 'proto',
 );
 		     	# List of assembly code lines we have generated
 		     	# but which have not yet been added to the final
@@ -71,7 +100,23 @@ my %Keyword= (
 );
 		     # List of known system calls to translate
 my %Syscall= (
-  'exit' => '.exit',
+  'exit'   => '.exit',
+  'open'   => '.open',
+  'read'   => '.read',
+  'write'  => '.write',
+  'close'  => '.close',
+  'getuid' => '.getuid',
+  'creat'  => '.creat',
+  'seek'   => '.seek',
+  'link'   => '.link',
+  'unlink' => '.unlink',
+  'setuid' => '.setuid',
+  'rename' => '.rename',
+  'time'   => '.time',
+  'chdir'  => '.chdir',
+  'chown'  => '.chown',
+  'chmod'  => '.chmod',
+  'fork'   => '.fork',
 );
 
 # Simple method to print error and die
@@ -906,9 +951,13 @@ sub Run {
     }
 
     # Print out local variables
-    foreach my $fn (keys(%PPosn)) {
-      foreach my $id (@{ $PPosn{$fn}}) {
-        print($OUT "$fn.$id: 0\n");
+    # Don't print out main.argc and main.argv
+    foreach my $fn (keys(%Local)) {
+      foreach my $id (keys(%{$Local{$fn}})) {
+	my $l= "$fn.$id";
+	next if ($l eq "main.argc");
+	next if ($l eq "main.argv");
+	print($OUT "$l: 0\n");
       }
     }
 
