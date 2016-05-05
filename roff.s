@@ -1,13 +1,29 @@
    jms main
    sys exit
 main: 0
+   lac o_m4
+   cma
+   tad d2
+   cma
+   dac .temp1
+   lac o_m3
+   cma
+   tad .temp1
+   cma
+   dac .temp1
+   lac o_m2
+   cma
+   tad .temp1
+   cma
+   dac .temp1
+   lac o_m1
+   cma
+   tad .temp1
+   cma
+   dac .temp1
    lac o_pl
    cma
-   tad o_m1
-   tad o_m2
-   tad o_m3
-   tad o_m4
-   tad d2
+   tad .temp1
    cma
    dac TXTLEN
    dzm assylen
@@ -726,10 +742,14 @@ LL136:
    dac .+4
    lac nread.i
    cll; mul; ..; lacq
-   tad c
+   dac .temp1
+   lac c
    cma
    tad d48
    cma
+   dac .temp2
+   lac .temp1
+   tad .temp2
    dac nread.i
    jmp LL139
 LL138:
@@ -2432,70 +2452,70 @@ col_no:
    0
 n_blanks:
    0
-d90: 90
-d0: 0
-d8: 8
-d95: 95
-d60012: 60012
-d10: 10
-d57: 57
-d58992: 58992
-d32: 32
-d48: 48
-d37: 37
-d56936: 56936
-d65: 65
-d1: 1
-m1: -1
-d97: 97
-d46: 46
-d2: 2
-d122: 122
 d126: 126
-d59489: 59489
+d97: 97
 d4: 4
+m1: -1
+d59489: 59489
 d9: 9
-itoa.n: 0
-itoa.digitptr: 0
-writebreak.q: 0
-spits.s: 0
-do_ta.v: 0
-tabulate.j: 0
+d8: 8
+d56936: 56936
+d32: 32
+d2: 2
+d65: 65
+d57: 57
+d1: 1
+d0: 0
+d37: 37
+d122: 122
+d58992: 58992
+d48: 48
+d90: 90
+d95: 95
+d46: 46
+d10: 10
+d60012: 60012
+titlen.c: 0
+titlen.t: 0
 titlen.q: 0
 titlen.k: 0
-titlen.t: 0
-titlen.c: 0
-bumpword.x: 0
-isspace.c: 0
-readreq.r: 0
-beginpage.i: 0
-writetitle.m: 0
-writetitle.t: 0
-writetitle.pstlen: 0
-writetitle.n: 0
-writetitle.d: 0
-writetitle.l: 0
-writetitle.j: 0
-writetitle.pst: 0
-isalnum.c: 0
-spit.t: 0
-spit.c: 0
-spit.ulflag: 0
-strcpy.src: 0
-strcpy.dst: 0
-islegal.c: 0
+writebreak.q: 0
 isdigit.c: 0
 nread.i: 0
 nread.f: 0
-readline.doingword: 0
-readline.startline: 0
-endpage.i: 0
-strlen.s: 0
-strlen.n: 0
-writeline.adflag: 0
-writeline.q: 0
-writeline.flushflag: 0
-writeline.j: 0
-pgform.pst: 0
+isspace.c: 0
+readreq.r: 0
 tread.s: 0
 tread.leadbl: 0
+isalnum.c: 0
+endpage.i: 0
+writetitle.m: 0
+writetitle.n: 0
+writetitle.pst: 0
+writetitle.l: 0
+writetitle.t: 0
+writetitle.d: 0
+writetitle.j: 0
+writetitle.pstlen: 0
+strcpy.dst: 0
+strcpy.src: 0
+strlen.n: 0
+strlen.s: 0
+readline.doingword: 0
+readline.startline: 0
+beginpage.i: 0
+itoa.n: 0
+itoa.digitptr: 0
+writeline.flushflag: 0
+writeline.adflag: 0
+writeline.q: 0
+writeline.j: 0
+bumpword.x: 0
+islegal.c: 0
+do_ta.v: 0
+tabulate.j: 0
+pgform.pst: 0
+spits.s: 0
+spit.t: 0
+spit.ulflag: 0
+spit.c: 0

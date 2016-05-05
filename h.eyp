@@ -467,25 +467,37 @@ lvalue_expression:
     | IDENTIFIER.i '[' bit_expression.e ']'
 	{ [ $i, 'array', $e ]; }
 ;
-argument:
+basic_expression:
       lvalue_expression
     | CONSTANT.c
 	{ $c= new_const($c); [ $c, '']; }
     | STRINGLITERAL.s
 	{ my $id= add_strliteral($s);
 	  [ $id, '' ]; }
-;
-basic_expression:
-      argument
     | function_expression
     | '(' bit_expression.b ')'
 	{ $b; }
 ;
-# If an lhs or a rhs comes in undefined, this means that
-# we have that result already in the AC.
-multiplicative_expression:
+
+unary_expression:
       basic_expression
-    | multiplicative_expression.lhs '*' basic_expression.rhs
+    | '~' basic_expression.e
+        {
+	  lac($e);
+  	  push(@$Line, ['cma']);
+	  tempdac();
+        }
+    | '!' basic_expression.e
+        {
+	  lac($e);
+  	  push(@$Line, ['cma']);
+	  tempdac();
+	}
+;
+
+multiplicative_expression:
+      unary_expression
+    | unary_expression.lhs '*' multiplicative_expression.rhs
 	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
@@ -493,7 +505,7 @@ multiplicative_expression:
   	  push(@$Line, ['cll; mul; ..; lacq']);
 	  tempdac();
 	}
-    | multiplicative_expression.lhs '/' basic_expression.rhs
+    | unary_expression.lhs '/' multiplicative_expression.rhs
 	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
@@ -501,7 +513,7 @@ multiplicative_expression:
   	  push(@$Line, ['cll; idiv; ..; lacq']);
 	  tempdac();
 	}
-    | multiplicative_expression.lhs '%' basic_expression.rhs
+    | unary_expression.lhs '%' multiplicative_expression.rhs
 	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
@@ -512,13 +524,13 @@ multiplicative_expression:
 ;
 additive_expression:
       multiplicative_expression
-    | additive_expression.lhs '+' multiplicative_expression.rhs
+    | multiplicative_expression.lhs '+' additive_expression.rhs
 	{ 
 	  lac($lhs);
   	  push(@$Line, ['tad', getid($rhs, 'rhsadd')]);
 	  tempdac();
 	}
-    | additive_expression.lhs '-' multiplicative_expression.rhs
+    | multiplicative_expression.lhs '-' additive_expression.rhs
 	{ 
 	  lac($lhs);
   	  push(@$Line, ['cma']);
@@ -644,9 +656,18 @@ relational_expression:
 logical_expression:
       relational_expression
     | relational_expression.lhs AND_OP logical_expression.rhs
-	{ 
+	{ # We can't just "and" them because both might be non-zero
+	  # but the "and" result might be zero.
 	  lac($lhs);
-  	  push(@$Line, ['and', getid($rhs, 'rhsand') ]);
+  	  push(@$Line, ['sna']);
+  	  push(@$Line, ['jmp', '1f']);
+	  lac($rhs);
+  	  push(@$Line, ['sna']);
+  	  push(@$Line, ['jmp', '1f']);
+  	  push(@$Line, ['lac', '.d1']);
+  	  push(@$Line, ['jmp', '2f']);
+  	  push(@$Line, ['1: cla']);
+  	  push(@$Line, ['2:']);
 	  tempdac();
 	}
     | relational_expression.lhs OR_OP logical_expression.rhs
@@ -658,7 +679,9 @@ logical_expression:
 	  tempdac();
 	}
 ;
-
+argument:
+      logical_expression
+;
 true_false_expression:
       logical_expression.b
 	{ 
@@ -939,7 +962,7 @@ sub _Lexer {
         if (s{^(>=)\s*}{}) {
           push(@TokenQueue,['GE_OP',$1]); next;
 	}
-        if (s{^([-+*/%&|^<>=,;:])\s*}{}) {
+        if (s{^([-+*/%&|^<>=,;:~!])\s*}{}) {
           push(@TokenQueue,[$1,$1]); next;
         }
         if (s{^([\(\)\{\}\[\]])\s*}{}) {
