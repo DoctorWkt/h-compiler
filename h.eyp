@@ -55,6 +55,24 @@ my @Forstack;	     	# Stack of line arrayrefs of third expressions in FOR
 my @Templocn;
 my $Tempnum= 20;	# Number of available temporary locations
 
+my $Line=[ ];		# List of assembly code lines we have generated
+		     	# but which have not yet been added to the final
+		     	# set of lines in @FinalLine
+my %Keyword= (		# List of keywords in the grammar
+  'break'    => 'BREAK',
+  'char'     => 'CHAR',
+  'continue' => 'CONTINUE',
+  'do'       => 'DO',
+  'else'     => 'ELSE',
+  'for'      => 'FOR',
+  'goto'     => 'GOTO',
+  'if' 	     => 'IF',
+  'int'      => 'INT',
+  'return'   => 'RETURN',
+  'switch'   => 'SWITCH',
+  'void'     => 'VOID',
+  'while'    => 'WHILE',
+);
 my %Function=(       	# List of known function identifiers
     'printn'  => 'proto',
     'getchar' => 'proto',
@@ -77,29 +95,8 @@ my %Function=(       	# List of known function identifiers
     '.chown'  => 'proto',
     '.fork'   => 'proto',
 );
-		     	# List of assembly code lines we have generated
-		     	# but which have not yet been added to the final
-		     	# set of lines in @FinalLine
-my $Line=[ ['jms','main'],['sys','exit'] ];
 
-		     	# List of keywords in the grammar
-my %Keyword= (
-  'break'    => 'BREAK',
-  'char'     => 'CHAR',
-  'continue' => 'CONTINUE',
-  'do'       => 'DO',
-  'else'     => 'ELSE',
-  'for'      => 'FOR',
-  'goto'     => 'GOTO',
-  'if' 	     => 'IF',
-  'int'      => 'INT',
-  'return'   => 'RETURN',
-  'switch'   => 'SWITCH',
-  'void'     => 'VOID',
-  'while'    => 'WHILE',
-);
-		     # List of known system calls to translate
-my %Syscall= (
+my %Syscall= (		# List of known system calls to translate
   'exit'   => '.exit',
   'open'   => '.open',
   'read'   => '.read',
@@ -184,7 +181,6 @@ sub getid
   my ($id, $ind, $offset)= @$idref;
 
   # Free up a temporary location
-  
   if ($id=~ m{^.temp\d$}) {
     unshift(@Templocn, $id);
   }
@@ -192,9 +188,7 @@ sub getid
 		if (defined($Local{$Last_functionid}{$id}));
 
   # Arrays are hard because we have to create a pointer to
-  # the element, and then we can return the pointer. We may
-  # also have to temporarily store the AC before we create
-  # the pointer
+  # the element, and then we can return the pointer.
   if ($ind eq 'array') {
     my ($offid, $offind) = @$offset;
 
@@ -229,6 +223,7 @@ sub new_label
   return("LL$label");
 }
 
+#### FUNCTION CODE
 # Declare a new function. The definition is always "proto" when we are
 # called, and stays that way after a function prototype. It changes to
 # "real" when the function is really defined.
@@ -260,8 +255,7 @@ sub get_functionid
   return($id);
 }
 
-
-### STRINGLIST CODE
+### STRING LITERAL CODE
 my @Stringlit;		# List of string literals and their identifiers
 
 my $strlabel=0;
@@ -281,7 +275,7 @@ sub add_strliteral
   return($label);
 }
 
-### PDP-7 specific code
+### TEMPORARY LOCATIONS CODE
 #
 # When I first wrote the compiler, I thought I could keep the
 # last expression result in the AC. This doesn't work for
@@ -324,8 +318,8 @@ sub tempdac
   return([ $temp, '' ]);
 }
 
-# Create a new constant to be written
-# out later
+### CONSTANTS CODE
+# Create a new constant to be written out later
 sub new_const
 {
   my $c= shift;
@@ -493,7 +487,6 @@ basic_expression:
     | '(' bit_expression.b ')'
 	{ $b; }
 ;
-
 unary_expression:
       basic_expression
     | '~' basic_expression.e
@@ -509,7 +502,6 @@ unary_expression:
 	  tempdac();
 	}
 ;
-
 multiplicative_expression:
       unary_expression
     | unary_expression.lhs '*' multiplicative_expression.rhs
@@ -590,7 +582,6 @@ bit_expression:
 	  tempdac();
 	}
 ;
-
 # Save a zero or non-zero result into a temp location
 relational_expression:
       bit_expression
@@ -819,7 +810,6 @@ third_for_expression:
           push(@Forstack, $Line); $Line= [];
         }
 ;
-
 jump_statement:
       GOTO IDENTIFIER.i ';'
   	{ push(@$Line, [ 'jmp', $i ]); }
@@ -874,7 +864,7 @@ $Parse::Eyapp::Node::INDENT = 2;
 
 sub _Error {
     print("Token " . $_[0]->YYCurval .
-          " unexpected on line $Linenumber of $Basename.a\n");
+          " unexpected on line $Linenumber of $Basename.h\n");
     print("Expecting one of: " . join(' ', $_[0]->YYExpect) . "\n");
 }
 
@@ -1183,7 +1173,7 @@ while ( defined( $ARGV[0] ) && ( $ARGV[0] =~ m{^-} ) ) {
     }
 }
 
-die("No input file $ARGV[0]\n") if (! -f $ARGV[0]);
+die("$ARGV[0] is not a file!\n") if (! -f $ARGV[0]);
 
 my($parser)=new h;
 $parser->Run($ARGV[0]);
