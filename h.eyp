@@ -610,8 +610,7 @@ relational_expression:
           push(@$Line, ['jmp', '1f']);
           push(@$Line, ['lac', '.d1']);	# True, now one
           push(@$Line, ['jmp', '2f']);
-          push(@$Line, ['cla']);	# Not true, now zero
-          push(@$Line, ['1: cla']);
+          push(@$Line, ['1: cla']);	# Not true, now zero
           push(@$Line, ['2:']);
 	  tempdac();
 	}
@@ -625,8 +624,7 @@ relational_expression:
           push(@$Line, ['jmp', '1f']);
           push(@$Line, ['lac', '.d1']);	# True, now one
           push(@$Line, ['jmp', '2f']);
-          push(@$Line, ['cla']);	# Not true, now zero
-          push(@$Line, ['1: cla']);
+          push(@$Line, ['1: cla']);	# Not true, now zero
           push(@$Line, ['2:']);
 	  tempdac();
 	}
