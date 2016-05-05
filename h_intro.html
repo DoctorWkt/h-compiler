@@ -3,16 +3,21 @@
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
 	<title></title>
-	<meta name="generator" content="LibreOffice 5.0.0.5 (Linux)"/>
-	<meta name="created" content="2016-04-30T19:37:23.475293823"/>
-	<meta name="changed" content="2016-04-30T20:35:58.373020125"/>
+	<meta name="generator" content="LibreOffice 5.0.1.2 (Linux)"/>
+	<meta name="created" content="00:00:00"/>
+	<meta name="changed" content="2016-05-05T11:16:18.665064258"/>
+	<meta name="created" content="00:00:00">
+	<meta name="changed" content="2016-05-05T10:01:41.649390475">
+	<meta name="created" content="2016-04-30T19:37:23.475293823">
+	<meta name="changed" content="2016-04-30T20:35:58.373020125">
 	<style type="text/css">
 		@page { margin: 2cm }
-		p { margin-bottom: 0.25cm; line-height: 120% }
 		h1 { margin-bottom: 0.21cm }
 		h1.western { font-family: "Liberation Sans", sans-serif; font-size: 18pt }
 		h1.cjk { font-family: "WenQuanYi Micro Hei"; font-size: 18pt }
 		h1.ctl { font-family: "FreeSans"; font-size: 18pt }
+		p { margin-bottom: 0.25cm; line-height: 120% }
+		pre.cjk { font-family: "Courier New", monospace }
 		a:link { so-language: zxx }
 	</style>
 </head>
@@ -22,245 +27,270 @@
 H Programming Language</b></font></font></p>
 <p align="center"><font size="4" style="font-size: 14pt"><b>Warren
 Toomey</b></font></p>
-<p>This is a short and informal introduction to the H programming
-language, a high-level language for Unix on the PDP-7. This is not an
-exhaustive or formal look at the language, mainly because the
-language is still under development. You are reading the details of
-the language as at April 30, 2016.</p>
-<p>The language is vaguely like a subset of the C language, so if you
-know C, C++ or Java, you should find this language very similar. From
-the beginning, there are some differences that you should be aware
-of:</p>
+<p><font size="3" style="font-size: 12pt">This is a short and
+informal introduction to the H programming language, a high-level
+language for Unix on the PDP-7. This is not an exhaustive or formal
+look at the language, mainly because the language is still under
+development. You are reading the details of the language as at May 5,
+2016.</font></p>
+<p><font size="3" style="font-size: 12pt">The language is vaguely
+like a subset of the C language, so if you know C, C++ or Java, you
+should find this language very similar. From the beginning, there are
+some differences that you should be aware of:</font></p>
 <ul>
 	<li/>
-<p>There is no recursion, as the language doesn't keep a stack</p>
+<p><font size="3" style="font-size: 12pt">There is no
+	recursion, as the language doesn't keep a stack</font></p>
 	<li/>
-<p>Arrays are one-dimensional and can only be declared as
-	global variables</p>
+<p><font size="3" style="font-size: 12pt">Arrays are
+	one-dimensional and can only be declared as global variables</font></p>
 </ul>
-<p>C comments are available: // and /* … */. The C-preprocessor is
-applied to the input file, too.</p>
+<p><font size="3" style="font-size: 12pt">C comments are available:
+// and /* … */. The C-preprocessor is applied to the input file,
+too.</font></p>
 <h1 class="western">Types and Variable Declarations</h1>
-<p>While the language has “void”, “int” and “char”, they
-are not used. Everything is stored as words, which are 18 bits on the
-PDP-7. In declarations, you can use the “*” decoration but this
-is also not used; it might help you remember that the variable will
-be used as a pointer, but the compiler ignores this.</p>
-<p>Variable names can be uppercase and lowercase and contain (but not
-start with) digits and the underscore.</p>
-<p>Variables can be declared in global and local scope, but in
-reality they are all global. Internally, variable <font face="Arial, sans-serif">x</font>
-in function <font face="Arial, sans-serif">fred</font> is turned into
-a global called <font face="Arial, sans-serif">fred.x</font>.</p>
-<p>Variables can be initialised. Globals can only be initialised to
-constant values; locals can be initialised with expressions. I will
-cover arrays later.</p>
-<p>Examples:</p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">int
-x;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">char
-y;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">char
-*z;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">int
-a=23;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">int
-b=a*2;	// Only in local scope</font></p>
-<h1 class="western">Statements</h1>
-<p>There are the following C like statements. Statements are not
-expressions</p>
+<p><font size="3" style="font-size: 12pt">While the language has
+“void”, “int” and “char”, they are not used. Everything
+is stored as words, which are 18 bits on the PDP-7. In variable
+declarations, you can use the “*” decoration but this is also not
+used; it might help you remember that the variable will be used as a
+pointer, but the compiler ignores this.</font></p>
+<p><font size="3" style="font-size: 12pt">Variable names can be
+uppercase and lowercase and contain (but not start with) digits and
+the underscore.</font></p>
+<p><font size="3" style="font-size: 12pt">Variables can be declared
+in global and local scope, but in reality they are all global.
+Internally, variable <font face="Courier, monospace">x</font> in
+function <font face="Courier, monospace">fred</font> is turned into a
+global called <font face="Courier, monospace">fred.x</font>.</font></p>
+<p><font size="3" style="font-size: 12pt">Variables can be
+initialised. Globals can only be initialised to constant values;
+locals can be initialised with expressions. I will cover arrays
+later.</font></p>
+<p><font size="3" style="font-size: 12pt">Examples:</font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">int x;</font>
+<font size="3" style="font-size: 12pt">char y;</font>
+<font size="3" style="font-size: 12pt">char *z;</font>
+<font size="3" style="font-size: 12pt">int a=23;</font>
+<font size="3" style="font-size: 12pt">int b=a*2; // Only in local scope</font></pre><h1 class="western">
+Statements</h1>
+<p><font size="3" style="font-size: 12pt">There are the following C
+like statements. Statements are not expressions</font></p>
 <ul>
 	<li/>
-<p>Assignment: <font face="Arial, sans-serif">lvalue =
-	expression;</font></p>
+<p><font size="3" style="font-size: 12pt">Assignment: <font face="Courier, monospace">lvalue
+	= expression;</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">lvalue++; </font><font face="Liberation Serif, serif">and</font><font face="Arial, sans-serif">
-	lvalue--;</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">lvalue++;
+	<font face="Liberation Serif, serif">and</font> lvalue--;</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">if (comparison) compound
-	statement</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">if
+	(comparison) compound statement</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">if (comparison) compound
-	statement else compound statement</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">if
+	(comparison) compound statement else compound statement</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">while (comparison) compound
-	statement</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">while
+	(comparison) compound statement</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">do compound statement while
-	(comparison);</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">do
+	compound statement while (comparison);</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">for (assignment; comparison;
-	assignment) compound statement</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">for
+	(assignment; comparison; assignment) compound statement</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">function()</font> and
-	<font face="Arial, sans-serif">function(arguments)</font>. This is
-	an expression!</p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">function()
+	<font face="Liberation Serif, serif">and</font> function(arguments)<font face="Liberation Serif, serif">.
+	These</font> <font face="Liberation Serif, serif">are</font>
+	<font face="Liberation Serif, serif">expressions!</font></font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">return();</font> and
-	<font face="Arial, sans-serif">return(expression);</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">return();
+	<font face="Liberation Serif, serif">and</font> return(expression);</font></font></p>
 	<li/>
-<p><font face="Arial, sans-serif">break</font> and <font face="Arial, sans-serif">continue</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">break
+	<font face="Liberation Serif, serif">and</font> continue</font></font></p>
 	<li/>
-<p>labels and <font face="Arial, sans-serif">jump label;</font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt"><font face="Liberation Serif, serif">labels
+	and</font> jump label;</font></font></p>
 </ul>
-<p>Compound statements are the same as C: { statement; statement;
-statement; }</p>
-<p>Post-increment/decrement ++ and – are statements, not
-expressions, so you cannot do <font face="Arial, sans-serif">s=x++;</font>
-You have to do <font face="Arial, sans-serif">s=x; x++;</font></p>
-<p><font face="Liberation Serif, serif">An l-value can be:</font></p>
+<p><font size="3" style="font-size: 12pt">Compound statements are the
+same as C: <font face="Courier, monospace">{ statement; statement;
+statement; }</font></font></p>
+<p><font size="3" style="font-size: 12pt">Post-increment/decrement ++
+and – are statements, not expressions, so you cannot do <font face="Courier, monospace">s=x++;</font>
+You have to do <font face="Courier, monospace">s=x; x++;</font></font></p>
+<p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">An
+l-value can be:</font></font></p>
 <ul>
 	<li/>
-<p><font face="Liberation Serif, serif">an identifier, e.g. </font><font face="Arial, sans-serif">x</font></p>
+<p><font size="3" style="font-size: 12pt"><font face="Liberation Serif, serif">an
+	identifier, e.g. </font><font face="Courier, monospace">x</font></font></p>
 	<li/>
-<p><font face="Liberation Serif, serif">a pointer to an
-	identifier, e.g. </font><font face="Arial, sans-serif">*x</font><font face="Liberation Serif, serif">,
-	regardless of how </font><font face="Arial, sans-serif">x</font><font face="Liberation Serif, serif">
-	was declared</font></p>
+<p><font size="3" style="font-size: 12pt"><font face="Liberation Serif, serif">a
+	pointer stored in an</font> <font face="Liberation Serif, serif">identifier,
+	e.g. </font><font face="Courier, monospace">*x</font><font face="Liberation Serif, serif">,
+	regardless of how </font><font face="Courier, monospace">x</font>
+	<font face="Liberation Serif, serif">was declared</font></font></p>
 	<li/>
-<p><font face="Liberation Serif, serif">an array element, e.g.
-	</font><font face="Arial, sans-serif">fred[6]</font><font face="Liberation Serif, serif">
-	and </font><font face="Arial, sans-serif">fred[x+2]</font></p>
+<p><font size="3" style="font-size: 12pt"><font face="Liberation Serif, serif">an
+	array element, e.g. </font><font face="Courier, monospace">fred[6]</font>
+	<font face="Liberation Serif, serif">and </font><font face="Courier, monospace">fred[x+2]</font></font></p>
 </ul>
 <h1 class="western">Expressions and Operators</h1>
-<p>There are the usual binary operators that you have in C: <font face="Arial, sans-serif">+
-- * / % &lt;&lt; &gt;&gt; &amp; | ^</font></p>
-<p><font face="Liberation Serif, serif">Assignment statements can
-only use these operators; you can't use the relational operators.
-There are no unary operators yet.</font></p>
-<p><font face="Liberation Serif, serif">For the selection and loop
-statements, comparisons can be done with the normal relational
-operators: <font face="Arial, sans-serif">== != &lt; &gt; &lt;= &gt;=</font>.
-Note, however, that <font face="Arial, sans-serif">==</font> and <font face="Arial, sans-serif">!=</font>
-are efficient, but the others are not efficient.</font></p>
+<p><font size="3" style="font-size: 12pt">There are the usual binary
+operators that you have in C: <font face="Courier, monospace">+ - * /
+% &lt;&lt; &gt;&gt; &amp; | ^ &amp;&amp; ||</font></font></p>
+<p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">Assignment
+statements can only use these operators; you can't use the relational
+operators. There are no unary operators yet.</font></font></p>
+<p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">For
+the selection and loop statements, comparisons can be done with the
+normal relational operators: <font face="Courier, monospace">== != &lt;
+&gt; &lt;= &gt;=</font>. Note, however, that <font face="Courier, monospace">==</font>
+and <font face="Courier, monospace">!=</font> are efficient, but the
+others are not efficient.</font></font></p>
 <h1 class="western">Constants and Literals</h1>
-<p>Numeric constants are decimal and octal, just as in C. There are
-no hexadecimal constants. Single character constants exist as per C,
-except that there are only a few special ones: <font face="Arial, sans-serif">'\n'</font>,
-<font face="Arial, sans-serif">'\t'</font> and <font face="Arial, sans-serif">'\0'</font>.</p>
-<p>There are two-character constants, e.g. <font face="Arial, sans-serif">'he'</font>,
-<font face="Arial, sans-serif">'ul'</font>, <font face="Arial, sans-serif">'ab'</font>.
-These are stored as 7-bit values in the left-half and right-half of
-the PDP-7 word.</p>
-<p>You can use anonymous string literals in local scope, e.g. <font face="Arial, sans-serif">char
+<p><font size="3" style="font-size: 12pt">Numeric constants are
+decimal and octal, just as in C. There are no hexadecimal constants.
+Single character constants exist as per C, except that there are only
+a few special ones: <font face="Arial, sans-serif">'\n'</font>, <font face="Arial, sans-serif">'\t'</font>
+and <font face="Arial, sans-serif">'\0'</font>.</font></p>
+<p><font size="3" style="font-size: 12pt">There are two-character
+constants, e.g. <font face="Arial, sans-serif">'he'</font>, <font face="Arial, sans-serif">'ul'</font>,
+<font face="Arial, sans-serif">'ab'</font>. These are stored as 7-bit
+values in the left-half and right-half of the PDP-7 word.</font></p>
+<p><font size="3" style="font-size: 12pt">You can use anonymous
+string literals in local scope, e.g. <font face="Courier, monospace">char
 *x= “abcd”; puts(“Hello\n”);</font> Each one is given an
 internal name and stored as a global. The compiler will store the
-same string multiple times if you create it multiple times, e.g. <font face="Arial, sans-serif">char
-*x= “abcd”; char *y= “abcd”;</font></p>
+same string multiple times if you create it multiple times, e.g. <font face="Courier, monospace">char
+*x= “abcd”; char *y= “abcd”;</font></font></p>
 <h1 class="western">Arrays and Pointers</h1>
-<p>The language supports arrays which can be declared in global
-scope. Examples:</p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">char
-* c[20];		// Filled with zero words</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">int
-x= { 1,2,3,4,5,6 };</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">char
-fred[]= “A sequence of characters\n”;</font></p>
-<p>In functions (local scope), you can access the array as a
-reference, access the elements and access elements through a pointer.
-So this is possible:</p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm"><font face="Arial, sans-serif">char
-fred[]= “A sequence of characters\n”);</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm"><font face="Arial, sans-serif">void
-main()</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm"><font face="Arial, sans-serif">{</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm">  <font face="Arial, sans-serif">char
-*x;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm">  <font face="Arial, sans-serif">x=
-fred;		// x points at fred[0]</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm">  <font face="Arial, sans-serif">fred[2]=
-'t';		// Change sequence to tequence</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm"> <font face="Arial, sans-serif">*x=
-'B';		// Change A tequence to B tequence</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm"> 
-<font face="Arial, sans-serif">putchar(fred[8]);	// Print out the 'c'
-in tequence</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0.05cm"><font face="Arial, sans-serif">}</font></p>
-<h1 class="western">Function Parameters and Arguments</h1>
-<p>Functions have parameters and arguments, and you can write
-prototypes as well. Functions return a single value. Arguments are
-copied (call by value) into the parameters. Remember that parameters
-are really hidden globals, so you cannot do recursion. Example:</p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">char
-str1[]= &quot;This is my first string\n&quot;;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">char
-buf[100];</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">int
-strlen(char *c)</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">{</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">  <font face="Arial, sans-serif">int
-n=0;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">  <font face="Arial, sans-serif">while
-(*c != '\0') {</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">    <font face="Arial, sans-serif">c++;
-n++;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">  <font face="Arial, sans-serif">}</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">  <font face="Arial, sans-serif">return(n);</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">}</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><br/>
+<p><font size="3" style="font-size: 12pt">The language supports
+arrays which can be declared in global scope. Examples:</font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">char *c[20];            // Filled with zero words</font>
+<font size="3" style="font-size: 12pt">int x= { 1,2,3,4,5,6 };</font>
+<font size="3" style="font-size: 12pt">char fred[]= “A sequence of characters\n”;</font>
+</pre><p>
+<font size="3" style="font-size: 12pt">In functions (local scope),
+you can access the array as a reference, access the elements and
+access elements through a pointer. So this is possible:</font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">char fred[]= “A sequence of characters\n”);</font>
+<font size="3" style="font-size: 12pt">void main()</font>
+<font size="3" style="font-size: 12pt">{</font>
+  <font size="3" style="font-size: 12pt">char *x;</font>
+  <font size="3" style="font-size: 12pt">x= fred;          // x points at fred[0]</font>
+  <font size="3" style="font-size: 12pt">fred[2]= 't';     // Change sequence to tequence</font>
+  <font size="3" style="font-size: 12pt">*x= 'B';          // Change A tequence to B tequence</font>
+  <font size="3" style="font-size: 12pt">putchar(fred[8]); // Print out the 'c' in tequence</font>
+<font size="3" style="font-size: 12pt">}</font></pre><h1 class="western">
+Function Parameters and Arguments</h1>
+<p><font size="3" style="font-size: 12pt">Functions have parameters
+and arguments, and you can write prototypes as well. Functions return
+a single value. Arguments are copied (call by value) into the
+parameters. Remember that parameters are really hidden globals, so
+you cannot do recursion. Example:</font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">char str1[]= &quot;This is my first string\n&quot;;</font>
+<font size="3" style="font-size: 12pt">char buf[100];</font>
+<font size="3" style="font-size: 12pt">int strlen(char *c)</font>
+<font size="3" style="font-size: 12pt">{</font>
+  <font size="3" style="font-size: 12pt">int n=0;</font>
+  <font size="3" style="font-size: 12pt">while (*c != '\0') {</font>
+    <font size="3" style="font-size: 12pt">c++; n++;</font>
+  <font size="3" style="font-size: 12pt">}</font>
+  <font size="3" style="font-size: 12pt">return(n);</font>
+<font size="3" style="font-size: 12pt">}</font>
+
+<font size="3" style="font-size: 12pt">void strcpy(char *dst, char *src)</font>
+<font size="3" style="font-size: 12pt">{</font>
+  <font size="3" style="font-size: 12pt">while (*src != '\0') {</font>
+    <font size="3" style="font-size: 12pt">*dst= *src;</font>
+    <font size="3" style="font-size: 12pt">dst++; src++;</font>
+  <font size="3" style="font-size: 12pt">}</font>
+  <font size="3" style="font-size: 12pt">*dst='\0';</font>
+<font size="3" style="font-size: 12pt">}</font>
+
+<font size="3" style="font-size: 12pt">void main()</font>
+<font size="3" style="font-size: 12pt">{</font>
+  <font size="3" style="font-size: 12pt">strcpy(buf,str1);</font>
+  <font size="3" style="font-size: 12pt">printn(strlen(buf));</font>
+<font size="3" style="font-size: 12pt">}</font></pre><h1 class="western">
+Built-in Functions</h1>
+<p><font size="3" style="font-size: 12pt">At present there are three
+built-in functions:</font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">void printn(int n)   // Print n out in octal with a newline to standard output</font>
+<font size="3" style="font-size: 12pt">void putchar(char c) // Print the character out</font>
+<font size="3" style="font-size: 12pt">char getchar(void)   // Get a character from standard input</font></pre><h1 class="western">
+System Calls</h1>
+<p><font size="3" style="font-size: 12pt">I have written support for
+the PDP-7 Unix system calls, but I haven't tested them yet. The
+<font face="Courier, monospace">main()</font> function has this
+prototype:</font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">void main(int argc, char *argv[])</font>
+</pre><p>
+<font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">The
+<font face="Courier, monospace">argc</font> is the count of arguments
+including the name of the program itself. The elements in the <font face="Courier, monospace">argv[]</font>
+array do not point at strings; instead each one points at the
+four-word packed argument that PDP-7 Unix supplies. Each word has two
+ASCII characters packed in the top and bottom halves. There is no NUL
+termination; instead space characters pad past the end of the
+argument, and the argument can be up to eight characters long (i.e. 4
+PDP-7 words, and no spaces in it at all). I should write a routine to
+unpack arguments into NUL-terminated strings.</font></font></p>
+<p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">Here
+are the prototypes for the system calls:</font></font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">int open(char *file, int how)              // Open the packed filename, how=0 read,</font>
+                                           <font size="3" style="font-size: 12pt">// how=1 write. Returns the file descriptor</font>
+<font size="3" style="font-size: 12pt">int read(int fd, char *buf, int cnt)       // Read cnt words from fd into the buffer</font>
+                                           <font size="3" style="font-size: 12pt">// Returns the number of words read</font>
+<font size="3" style="font-size: 12pt">int write(int fd, char *buf, int cnt)      // Write cnt words from the buffer into fd</font>
+                                           <font size="3" style="font-size: 12pt">// Returns the number of words written</font>
+<font size="3" style="font-size: 12pt">int close(int fd); // Close the fd</font>
+<font size="3" style="font-size: 12pt">int seek(int fd, int offset, int how);     // I think as per normal lseek; must check</font>
+<font size="3" style="font-size: 12pt">int link(char *dir, char *src, char *dst); // Link “dir/src” into “./dst”</font>
+<font size="3" style="font-size: 12pt">int unlink(char *src);                     // Unlink src</font>
+<font size="3" style="font-size: 12pt">int setuid(int id);                        // Set the user-id to id</font>
+<font size="3" style="font-size: 12pt">int rename(char *src, char *dst);          // Rename src to dst</font>
+<font size="3" style="font-size: 12pt">int chdir(char *dir);                      // Move into dir</font>
+<font size="3" style="font-size: 12pt">int chmod(char *file, int mode);           // Set the perms of the file to mode</font>
+<font size="3" style="font-size: 12pt">int chown(char *file, int id);             // Set the file owner to id</font>
+<font size="3" style="font-size: 12pt">void exit(void)                            // Exit the program</font></pre><p style="margin-bottom: 0cm">
+<br/>
 
 </p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">void
-strcpy(char *dst, char *src)</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">{</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">  <font face="Arial, sans-serif">while
-(*src != '\0') {</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">    <font face="Arial, sans-serif">*dst=
-*src;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">    <font face="Arial, sans-serif">dst++;
-src++;</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">  <font face="Arial, sans-serif">}</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm">  <font face="Arial, sans-serif">*dst='\0';</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">}</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><br/>
-
-</p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">void
-main()</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">{</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"> 
-<font face="Arial, sans-serif">strcpy(buf,str1);</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"> 
-<font face="Arial, sans-serif">printn(strlen(buf));</font></p>
-<p style="margin-left: 1.25cm; margin-bottom: 0cm"><font face="Arial, sans-serif">}</font></p>
-<h1 class="western">Built-in Functions</h1>
-<p>At present there are four built-in functions:</p>
-<ul>
-	<li/>
-<p style="margin-bottom: 0cm"><font face="Arial, sans-serif">void
-	printn(int n)	// Print n out in octal with a newline to standard
-	output</font></p>
-	<li/>
-<p style="margin-bottom: 0cm"><font face="Arial, sans-serif">void
-	putchar(char c)	 // Print the character out</font></p>
-	<li/>
-<p style="margin-bottom: 0cm"><font face="Arial, sans-serif">char
-	getchar(void)	// Get a character from standard input</font></p>
-	<li/>
-<p style="margin-bottom: 0cm"><font face="Arial, sans-serif">void
-	exit(void)	// Exit the program</font></p>
-</ul>
-<p style="margin-bottom: 0cm"><font face="Liberation Serif, serif">Later
-on, I'll add some more functions and try to support most of the Unix
-system calls. It would be nice to have parameters to </font><font face="Arial, sans-serif">main()</font><font face="Liberation Serif, serif">,
-too.</font></p>
+<p style="margin-bottom: 0cm"><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">For
+all of these syscalls, filenames are packed arguments (four words,
+spaces to fill), not NUL-terminated strings! Read the PDP-7 Unix
+kernel source code for exact details of how each system call works.</font></font></p>
 <h1 class="western">More Details</h1>
-<p>If you want more details in the H language:</p>
+<p><font size="3" style="font-size: 12pt">If you want more details in
+the H language:</font></p>
 <ul>
 	<li/>
-<p>Look at the source files in <font face="Arial, sans-serif">test/t*.h</font>,
-	which I use for regression testing</p>
+<p><font size="3" style="font-size: 12pt">Look at the source
+	files in <font face="Courier, monospace">test/t*.h</font>, which I
+	use for regression testing</font></p>
 	<li/>
-<p>Run <font face="Arial, sans-serif">eyapp -c h.eyp | less</font>
-	to see the Yacc grammar of the language</p>
+<p><font size="3" style="font-size: 12pt">Look at the PDP-7
+	commands that I am writing in <font face="Courier, monospace">cmds/</font></font></p>
 	<li/>
-<p>Read through <font face="Arial, sans-serif">h.eyp</font> to
-	see the compiler and how it works</p>
+<p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">Look
+	at <font face="Courier, monospace">roff.c</font> which compiles both
+	as C and H source code. This is the main reason for writing this
+	compiler.</font></font></p>
 	<li/>
-<p>Write some programs and see what they do and what the
-	compiler allows</p>
+<p><font size="3" style="font-size: 12pt">Run <font face="Courier, monospace">eyapp
+	-c h.eyp | less</font> to see the Yacc grammar of the language</font></p>
 	<li/>
-<p>Send me some e-mail with questions: <font face="Arial, sans-serif">wkt@tuhs.org</font></p>
+<p><font size="3" style="font-size: 12pt">Read through <font face="Courier, monospace">h.eyp</font>
+	to see the compiler and how it works</font></p>
+	<li/>
+<p><font size="3" style="font-size: 12pt">Write some programs
+	and see what they do and what the compiler allows</font></p>
+	<li/>
+<p><font size="3" style="font-size: 12pt">Send me some e-mail
+	with questions: <font face="Arial, sans-serif">wkt@tuhs.org</font></font></p>
 </ul>
 </body>
 </html>

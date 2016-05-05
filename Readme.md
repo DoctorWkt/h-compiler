@@ -25,6 +25,12 @@ The change log follows below.
 
 Cheers, Warren
 
+Thu May  5 13:25:34 AEST 2016
+-----------------------------
+I've added && and ||, comparisons as expressions, made function arguments
+into expressions, and I've added support for most of the PDP-7 Unix
+system calls.
+
 Tue May  3 16:43:23 AEST 2016
 -----------------------------
 I've finally got roff to compile and execute. There is now a roff.c

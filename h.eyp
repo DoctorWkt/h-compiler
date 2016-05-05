@@ -5,7 +5,7 @@
 # (c) Warren Toomey, 2016. GPL3 license.
 #
 %token IDENTIFIER CONSTANT STRINGLITERAL
-%token INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP 
+%token INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP
 %token CHAR INT VOID 
 %token IF ELSE WHILE DO GOTO CONTINUE BREAK RETURN 
 %left WEAK 
@@ -29,6 +29,19 @@ my %Local;           	# List of known per-function identifiers
 my %PPosn= (	     	# The parameter names and position for each function
  'putchar' => [ 'c' ],
  'printn'  => [ 'n' ],
+ 'open'    => [ 'buf', 'how' ],
+ 'read'    => [ 'fd', 'buf', 'cnt' ],
+ 'write'   => [ 'fd', 'buf', 'cnt' ],
+ 'close'   => [ 'fd' ],
+ 'creat'   => [ 'buf' ],
+ 'seek'    => [ 'fd', 'offset', 'how' ],
+ 'link'    => [ 'dir', 'src', 'dst' ],
+ 'unlink'  => [ 'buf' ],
+ 'setuid'  => [ 'uid' ],
+ 'rename'  => [ 'old', 'new' ],
+ 'chdir'   => [ 'dir' ],
+ 'chmod'   => [ 'file', 'mode' ],
+ 'chown'   => [ 'file', 'uid' ],
 );
 
 my $Last_functionid="";	# Name of the last function that was created
@@ -43,10 +56,26 @@ my @Templocn;
 my $Tempnum= 20;	# Number of available temporary locations
 
 my %Function=(       	# List of known function identifiers
-    'printn' => 'proto',
+    'printn'  => 'proto',
     'getchar' => 'proto',
     'putchar' => 'proto',
-    '.exit' => 'proto',
+    '.exit'   => 'proto',
+    '.open'   => 'proto',
+    '.read'   => 'proto',
+    '.write'  => 'proto',
+    '.close'  => 'proto',
+    '.getuid' => 'proto',
+    '.creat'  => 'proto',
+    '.seek'   => 'proto',
+    '.link'   => 'proto',
+    '.unlink' => 'proto',
+    '.setuid' => 'proto',
+    '.rename' => 'proto',
+    '.time'   => 'proto',
+    '.chdir'  => 'proto',
+    '.chmod'  => 'proto',
+    '.chown'  => 'proto',
+    '.fork'   => 'proto',
 );
 		     	# List of assembly code lines we have generated
 		     	# but which have not yet been added to the final
@@ -71,7 +100,23 @@ my %Keyword= (
 );
 		     # List of known system calls to translate
 my %Syscall= (
-  'exit' => '.exit',
+  'exit'   => '.exit',
+  'open'   => '.open',
+  'read'   => '.read',
+  'write'  => '.write',
+  'close'  => '.close',
+  'getuid' => '.getuid',
+  'creat'  => '.creat',
+  'seek'   => '.seek',
+  'link'   => '.link',
+  'unlink' => '.unlink',
+  'setuid' => '.setuid',
+  'rename' => '.rename',
+  'time'   => '.time',
+  'chdir'  => '.chdir',
+  'chown'  => '.chown',
+  'chmod'  => '.chmod',
+  'fork'   => '.fork',
 );
 
 # Simple method to print error and die
@@ -422,25 +467,38 @@ lvalue_expression:
     | IDENTIFIER.i '[' bit_expression.e ']'
 	{ [ $i, 'array', $e ]; }
 ;
-argument:
+basic_expression:
       lvalue_expression
+    | postop_expression
     | CONSTANT.c
 	{ $c= new_const($c); [ $c, '']; }
     | STRINGLITERAL.s
 	{ my $id= add_strliteral($s);
 	  [ $id, '' ]; }
-;
-basic_expression:
-      argument
     | function_expression
     | '(' bit_expression.b ')'
 	{ $b; }
 ;
-# If an lhs or a rhs comes in undefined, this means that
-# we have that result already in the AC.
-multiplicative_expression:
+
+unary_expression:
       basic_expression
-    | multiplicative_expression.lhs '*' basic_expression.rhs
+    | '~' basic_expression.e
+        {
+	  lac($e);
+  	  push(@$Line, ['cma']);
+	  tempdac();
+        }
+    | '!' basic_expression.e
+        {
+	  lac($e);
+  	  push(@$Line, ['cma']);
+	  tempdac();
+	}
+;
+
+multiplicative_expression:
+      unary_expression
+    | unary_expression.lhs '*' multiplicative_expression.rhs
 	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
@@ -448,7 +506,7 @@ multiplicative_expression:
   	  push(@$Line, ['cll; mul; ..; lacq']);
 	  tempdac();
 	}
-    | multiplicative_expression.lhs '/' basic_expression.rhs
+    | unary_expression.lhs '/' multiplicative_expression.rhs
 	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
@@ -456,7 +514,7 @@ multiplicative_expression:
   	  push(@$Line, ['cll; idiv; ..; lacq']);
 	  tempdac();
 	}
-    | multiplicative_expression.lhs '%' basic_expression.rhs
+    | unary_expression.lhs '%' multiplicative_expression.rhs
 	{ 
 	  lac($rhs);
   	  push(@$Line, ['dac', '.+4']);
@@ -467,13 +525,13 @@ multiplicative_expression:
 ;
 additive_expression:
       multiplicative_expression
-    | additive_expression.lhs '+' multiplicative_expression.rhs
+    | multiplicative_expression.lhs '+' additive_expression.rhs
 	{ 
 	  lac($lhs);
   	  push(@$Line, ['tad', getid($rhs, 'rhsadd')]);
 	  tempdac();
 	}
-    | additive_expression.lhs '-' multiplicative_expression.rhs
+    | multiplicative_expression.lhs '-' additive_expression.rhs
 	{ 
 	  lac($lhs);
   	  push(@$Line, ['cma']);
@@ -518,14 +576,10 @@ bit_expression:
 	  tempdac();
 	}
 ;
+
+# Save a zero or non-zero result into a temp location
 relational_expression:
-      bit_expression.b
-	{ 
-	  lac($b);
-	  push(@$Line, ['lac', getid($b, 'lac')]);
-	  push(@$Line, ['sna']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
-	}
+      bit_expression
     | bit_expression.lhs '<' bit_expression.rhs
 	{ 
 	  lac($lhs);
@@ -533,7 +587,8 @@ relational_expression:
 	  push(@$Line, ['tad', getid($rhs, 'rhs<') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['cla']);	# Not true, now zero
+	  tempdac();
 	}
     | bit_expression.lhs '>' bit_expression.rhs
 	{ 
@@ -542,7 +597,8 @@ relational_expression:
 	  push(@$Line, ['tad', getid($lhs, 'lhs>')]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['cla']);	# Not true, now zero
+	  tempdac();
 	}
     | bit_expression.lhs LE_OP bit_expression.rhs
 	{ 
@@ -551,7 +607,13 @@ relational_expression:
 	  push(@$Line, ['tad', getid($lhs, 'lhs<=') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['lac', '.d1']);	# True, now one
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['cla']);	# Not true, now zero
+          push(@$Line, ['1: cla']);
+          push(@$Line, ['2:']);
+	  tempdac();
 	}
     | bit_expression.lhs GE_OP bit_expression.rhs
 	{ 
@@ -560,21 +622,73 @@ relational_expression:
 	  push(@$Line, ['tad', getid($rhs, 'rhs>=') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['lac', '.d1']);	# True, now one
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['cla']);	# Not true, now zero
+          push(@$Line, ['1: cla']);
+          push(@$Line, ['2:']);
+	  tempdac();
 	}
     | bit_expression.lhs EQ_OP bit_expression.rhs
 	{
 	  my $third= new_label();
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs==') ]);
-          push(@$Line, ['jmp', $third]);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
-          push(@$Line, ["$third:"]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['cla']);	# Not true, now zero
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['1: lac', '.d1']);	# True, now one
+          push(@$Line, ['2:']);
+	  tempdac();
 	}
     | bit_expression.lhs NE_OP bit_expression.rhs
 	{ 
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs!=') ]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['lac', '.d1']);	# True, now one
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['1: cla']);	# Not true, now zero
+          push(@$Line, ['2:']);
+	  tempdac();
+	}
+;
+logical_expression:
+      relational_expression
+    | relational_expression.lhs AND_OP logical_expression.rhs
+	{ # We can't just "and" them because both might be non-zero
+	  # but the "and" result might be zero.
+	  lac($lhs);
+  	  push(@$Line, ['sna']);
+  	  push(@$Line, ['jmp', '1f']);
+	  lac($rhs);
+  	  push(@$Line, ['sna']);
+  	  push(@$Line, ['jmp', '1f']);
+  	  push(@$Line, ['lac', '.d1']);
+  	  push(@$Line, ['jmp', '2f']);
+  	  push(@$Line, ['1: cla']);
+  	  push(@$Line, ['2:']);
+	  tempdac();
+	}
+    | relational_expression.lhs OR_OP logical_expression.rhs
+	{ 
+	  lac($rhs);
+  	  push(@$Line, ['lmq']);
+	  lac($lhs);
+  	  push(@$Line, ['omq']);
+	  tempdac();
+	}
+;
+argument:
+      logical_expression
+;
+true_false_expression:
+      logical_expression.b
+	{ 
+	  lac($b);
+	  push(@$Line, ['lac', getid($b, 'lac')]);
+	  push(@$Line, ['sna']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
 ;
@@ -619,7 +733,7 @@ if_head:
           push(@ifstack, [ $false, $end ]);
 	  $lifref= \@ifstack;
         }
-      '(' relational_expression ')'
+      '(' true_false_expression ')'
 	{ reset_temp_locations(); }
       statement 
 ;
@@ -632,7 +746,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
-      '(' relational_expression ')'
+      '(' true_false_expression ')'
       statement
         { push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
@@ -647,7 +761,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
-      statement WHILE '(' relational_expression ')' ';'
+      statement WHILE '(' true_false_expression ')' ';'
 	{ push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
@@ -662,7 +776,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
-      relational_expression ';'
+      true_false_expression ';'
 	{ # Move all the current lines over to FinalLine
           # and empty $Line for the third statement
           push(@FinalLine, $Line); $Line= [];
@@ -716,15 +830,20 @@ postop_statement:
 ;
 postop_expression:
       lvalue_expression.l INC_OP
-	{ push(@$Line, ['isz', getid($l, 'lac') ]); 
-	  push(@$Line, ['nop']); 
-	  reset_temp_locations();
+	{ my ($id, $ind)= getid($l, 'lac');
+	  push(@$Line, ['lac', "$id $ind"]);
+	  my $temp= tempdac();
+	  push(@$Line, ['tad', '.d1']); 
+	  push(@$Line, ['dac', "$id $ind"]);
+	  $temp;
 	}
     | lvalue_expression.l DEC_OP 
 	{ my ($id, $ind)= getid($l, 'lac');
-	  push(@$Line, ['-1', '; tad', $id, $ind ]);
-	  push(@$Line, ['dac', "$id $ind" ]);
-	  reset_temp_locations();
+	  push(@$Line, ['lac', "$id $ind"]);
+	  my $temp= tempdac();
+	  push(@$Line, ['tad', '.m1']); 
+	  push(@$Line, ['dac', "$id $ind"]);
+	  $temp;
 	}
 ;
 declaration_list:
@@ -825,6 +944,12 @@ sub _Lexer {
         if (s{^(>>)\s*}{}) {
           push(@TokenQueue,['RIGHT_OP',$1]); next;
         }
+        if (s{^(\&\&)\s*}{}) {
+          push(@TokenQueue,['AND_OP',$1]); next;
+        }
+        if (s{^(\|\|)\s*}{}) {
+          push(@TokenQueue,['OR_OP',$1]); next;
+        }
         if (s{^(\+\+)\s*}{}) {
           push(@TokenQueue,['INC_OP',$1]); next;
         }
@@ -843,7 +968,7 @@ sub _Lexer {
         if (s{^(>=)\s*}{}) {
           push(@TokenQueue,['GE_OP',$1]); next;
 	}
-        if (s{^([-+*/%&|^<>=,;:])\s*}{}) {
+        if (s{^([-+*/%&|^<>=,;:~!])\s*}{}) {
           push(@TokenQueue,[$1,$1]); next;
         }
         if (s{^([\(\)\{\}\[\]])\s*}{}) {
@@ -906,9 +1031,13 @@ sub Run {
     }
 
     # Print out local variables
-    foreach my $fn (keys(%PPosn)) {
-      foreach my $id (@{ $PPosn{$fn}}) {
-        print($OUT "$fn.$id: 0\n");
+    # Don't print out main.argc and main.argv
+    foreach my $fn (keys(%Local)) {
+      foreach my $id (keys(%{$Local{$fn}})) {
+	my $l= "$fn.$id";
+	next if ($l eq "main.argc");
+	next if ($l eq "main.argv");
+	print($OUT "$l: 0\n");
       }
     }
 
