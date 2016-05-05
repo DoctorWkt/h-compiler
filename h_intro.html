@@ -3,9 +3,13 @@
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
 	<title></title>
-	<meta name="generator" content="LibreOffice 5.0.1.2 (Linux)"/>
+	<meta name="generator" content="LibreOffice 5.0.0.5 (Linux)"/>
 	<meta name="created" content="00:00:00"/>
-	<meta name="changed" content="2016-05-05T11:16:18.665064258"/>
+	<meta name="changed" content="2016-05-05T19:16:56.642700938"/>
+	<meta name="created" content="00:00:00">
+	<meta name="changed" content="2016-05-05T19:02:36.438769843">
+	<meta name="created" content="00:00:00">
+	<meta name="changed" content="2016-05-05T11:16:18.665064258">
 	<meta name="created" content="00:00:00">
 	<meta name="changed" content="2016-05-05T10:01:41.649390475">
 	<meta name="created" content="2016-04-30T19:37:23.475293823">
@@ -46,8 +50,8 @@ some differences that you should be aware of:</font></p>
 	one-dimensional and can only be declared as global variables</font></p>
 </ul>
 <p><font size="3" style="font-size: 12pt">C comments are available:
-// and /* … */. The C-preprocessor is applied to the input file,
-too.</font></p>
+// and /* … */. </font>
+</p>
 <h1 class="western">Types and Variable Declarations</h1>
 <p><font size="3" style="font-size: 12pt">While the language has
 “void”, “int” and “char”, they are not used. Everything
@@ -72,6 +76,7 @@ later.</font></p>
 <font size="3" style="font-size: 12pt">char y;</font>
 <font size="3" style="font-size: 12pt">char *z;</font>
 <font size="3" style="font-size: 12pt">int a=23;</font>
+<font size="3" style="font-size: 12pt">int a, b, *c, d;</font>
 <font size="3" style="font-size: 12pt">int b=a*2; // Only in local scope</font></pre><h1 class="western">
 Statements</h1>
 <p><font size="3" style="font-size: 12pt">There are the following C
@@ -81,23 +86,20 @@ like statements. Statements are not expressions</font></p>
 <p><font size="3" style="font-size: 12pt">Assignment: <font face="Courier, monospace">lvalue
 	= expression;</font></font></p>
 	<li/>
-<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">lvalue++;
-	<font face="Liberation Serif, serif">and</font> lvalue--;</font></font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">if
+	(expression) compound statement</font></font></p>
 	<li/>
 <p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">if
-	(comparison) compound statement</font></font></p>
-	<li/>
-<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">if
-	(comparison) compound statement else compound statement</font></font></p>
+	(expression) compound statement else compound statement</font></font></p>
 	<li/>
 <p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">while
-	(comparison) compound statement</font></font></p>
+	(expression) compound statement</font></font></p>
 	<li/>
 <p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">do
-	compound statement while (comparison);</font></font></p>
+	compound statement while (expression);</font></font></p>
 	<li/>
 <p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">for
-	(assignment; comparison; assignment) compound statement</font></font></p>
+	(assignment; expression; assignment) compound statement</font></font></p>
 	<li/>
 <p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">function()
 	<font face="Liberation Serif, serif">and</font> function(arguments)<font face="Liberation Serif, serif">.
@@ -107,8 +109,8 @@ like statements. Statements are not expressions</font></p>
 <p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">return();
 	<font face="Liberation Serif, serif">and</font> return(expression);</font></font></p>
 	<li/>
-<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">break
-	<font face="Liberation Serif, serif">and</font> continue</font></font></p>
+<p><font face="Courier, monospace"><font size="3" style="font-size: 12pt">break;
+	<font face="Liberation Serif, serif">and</font> continue;</font></font></p>
 	<li/>
 <p><font face="Courier, monospace"><font size="3" style="font-size: 12pt"><font face="Liberation Serif, serif">labels
 	and</font> jump label;</font></font></p>
@@ -116,9 +118,6 @@ like statements. Statements are not expressions</font></p>
 <p><font size="3" style="font-size: 12pt">Compound statements are the
 same as C: <font face="Courier, monospace">{ statement; statement;
 statement; }</font></font></p>
-<p><font size="3" style="font-size: 12pt">Post-increment/decrement ++
-and – are statements, not expressions, so you cannot do <font face="Courier, monospace">s=x++;</font>
-You have to do <font face="Courier, monospace">s=x; x++;</font></font></p>
 <p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">An
 l-value can be:</font></font></p>
 <ul>
@@ -140,15 +139,18 @@ l-value can be:</font></font></p>
 <p><font size="3" style="font-size: 12pt">There are the usual binary
 operators that you have in C: <font face="Courier, monospace">+ - * /
 % &lt;&lt; &gt;&gt; &amp; | ^ &amp;&amp; ||</font></font></p>
-<p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">Assignment
-statements can only use these operators; you can't use the relational
-operators. There are no unary operators yet.</font></font></p>
+<p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">The
+unary operators are !  and ~  (logical and bitwise negation). There
+are also post-increment and post-decrement <font face="Arial, sans-serif">++</font>
+and <font face="Courier New, monospace">– </font>operators which
+are expressions.</font></font></p>
 <p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">For
 the selection and loop statements, comparisons can be done with the
 normal relational operators: <font face="Courier, monospace">== != &lt;
 &gt; &lt;= &gt;=</font>. Note, however, that <font face="Courier, monospace">==</font>
 and <font face="Courier, monospace">!=</font> are efficient, but the
-others are not efficient.</font></font></p>
+others are not efficient. As with C, zero is false and non-zero is
+true.</font></font></p>
 <h1 class="western">Constants and Literals</h1>
 <p><font size="3" style="font-size: 12pt">Numeric constants are
 decimal and octal, just as in C. There are no hexadecimal constants.
@@ -170,8 +172,7 @@ same string multiple times if you create it multiple times, e.g. <font face="Cou
 arrays which can be declared in global scope. Examples:</font></p>
 <pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">char *c[20];            // Filled with zero words</font>
 <font size="3" style="font-size: 12pt">int x= { 1,2,3,4,5,6 };</font>
-<font size="3" style="font-size: 12pt">char fred[]= “A sequence of characters\n”;</font>
-</pre><p>
+<font size="3" style="font-size: 12pt">char fred[]= “A sequence of characters\n”;</font></pre><p>
 <font size="3" style="font-size: 12pt">In functions (local scope),
 you can access the array as a reference, access the elements and
 access elements through a pointer. So this is possible:</font></p>
@@ -215,6 +216,19 @@ you cannot do recursion. Example:</font></p>
   <font size="3" style="font-size: 12pt">strcpy(buf,str1);</font>
   <font size="3" style="font-size: 12pt">printn(strlen(buf));</font>
 <font size="3" style="font-size: 12pt">}</font></pre><h1 class="western">
+Function Prototypes</h1>
+<p>You can declare function prototypes so that you can refer to
+functions before they exist, but you have to declare all the
+parameters to the function. Here is an example:</p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">int strlen(char *c);</font>
+<font size="3" style="font-size: 12pt">void strcpy(char *dst, char *src);</font>
+
+<font size="3" style="font-size: 12pt">void main()</font>
+<font size="3" style="font-size: 12pt">{</font>
+  <font size="3" style="font-size: 12pt">strcpy(buf,str1);</font>
+  <font size="3" style="font-size: 12pt">printn(strlen(buf));</font>
+<font size="3" style="font-size: 12pt">}</font>
+<font size="3" style="font-size: 12pt">// . . . rest of file . . .</font></pre><h1 class="western">
 Built-in Functions</h1>
 <p><font size="3" style="font-size: 12pt">At present there are three
 built-in functions:</font></p>
@@ -226,8 +240,7 @@ System Calls</h1>
 the PDP-7 Unix system calls, but I haven't tested them yet. The
 <font face="Courier, monospace">main()</font> function has this
 prototype:</font></p>
-<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">void main(int argc, char *argv[])</font>
-</pre><p>
+<pre class="western" style="margin-left: 2cm; margin-bottom: 0.5cm"><font size="3" style="font-size: 12pt">void main(int argc, char *argv[])</font></pre><p>
 <font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">The
 <font face="Courier, monospace">argc</font> is the count of arguments
 including the name of the program itself. The elements in the <font face="Courier, monospace">argv[]</font>
@@ -260,9 +273,15 @@ are the prototypes for the system calls:</font></font></p>
 
 </p>
 <p style="margin-bottom: 0cm"><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">For
-all of these syscalls, filenames are packed arguments (four words,
-spaces to fill), not NUL-terminated strings! Read the PDP-7 Unix
-kernel source code for exact details of how each system call works.</font></font></p>
+all of these system calls, filenames are packed arguments (four
+words, spaces to fill), not NUL-terminated strings! Read the PDP-7
+Unix kernel source code for exact details of how each system call
+works.</font></font></p>
+<h1 class="western">The Preprocessor</h1>
+<p>The H compiler calls the C-preprocessor on the input file, and
+ensures that there are no include paths by default. This means that
+you can #<font face="Arial, sans-serif">define</font>, <font face="Arial, sans-serif">#ifdef</font>,
+<font face="Arial, sans-serif">#include</font> as you normally would.</p>
 <h1 class="western">More Details</h1>
 <p><font size="3" style="font-size: 12pt">If you want more details in
 the H language:</font></p>
