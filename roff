@@ -244,7 +244,7 @@
 010463: 354567	   tad o_m2
 010464: 354570	   tad o_m3
 010465: 354571	   tad o_m4
-010466: 354627	   tad d2
+010466: 354624	   tad d2
 010467: 740001	   cma
 010470: 054576	   dac TXTLEN
 010471: 154307	   dzm assylen
@@ -274,71 +274,71 @@
 010521: 630510	   jmp readfile i
 010522: 000000	readline: 0
 010523: 154530	   dzm isrequest
-010524: 214626	   lac d1
-010525: 054636	   dac readline.startline
-010526: 154635	   dzm readline.doingword
+010524: 214620	   lac d1
+010525: 054673	   dac readline.startline
+010526: 154672	   dzm readline.doingword
 010527: 113347	   jms suck
 010530: 054577	   dac c
-010531: 554631	   sad d10
+010531: 554610	   sad d10
 010532: 610535	   jmp 1f
 010533: 750000	   cla
 010534: 610536	   jmp 2f
 010535: 210267	1: lac .d1
 010536: 741200	   sna
 010537: 610546	   jmp LL5
-010540: 214626	   lac d1
+010540: 214620	   lac d1
 010541: 054565	   dac o_sp
 010542: 112030	   jms writebreak
 010543: 054025	   dac .temp1
 010544: 611035	   jmp out
 010545: 610555	   jmp LL6
 010546: 214577	   lac c
-010547: 054650	   dac isspace.c
+010547: 054645	   dac isspace.c
 010550: 113401	   jms isspace
 010551: 741200	   sna
 010552: 610555	   jmp LL8
 010553: 112030	   jms writebreak
 010554: 054025	   dac .temp1
-010555: 214626	   lac d1
+010555: 214620	   lac d1
 010556: 741200	   sna
 010557: 611035	   jmp LL11
 010560: 214577	   lac c
-010561: 554617	   sad d4
+010561: 554630	   sad d4
 010562: 610565	   jmp 1f
 010563: 750000	   cla
 010564: 610566	   jmp 2f
 010565: 210267	1: lac .d1
 010566: 741200	   sna
 010567: 610576	   jmp LL12
-010570: 214635	   lac readline.doingword
+010570: 214672	   lac readline.doingword
 010571: 741200	   sna
 010572: 610575	   jmp LL15
 010573: 111061	   jms bumpword
 010574: 054025	   dac .temp1
 010575: 611035	   jmp LL11
 010576: 214577	   lac c
-010577: 054650	   dac isspace.c
+010577: 054645	   dac isspace.c
 010600: 113401	   jms isspace
 010601: 741200	   sna
 010602: 610663	   jmp LL17
-010603: 214635	   lac readline.doingword
-010604: 554620	   sad d0
+010603: 214672	   lac readline.doingword
+010604: 554604	   sad d0
 010605: 610610	   jmp 1f
 010606: 750000	   cla
 010607: 610611	   jmp 2f
 010610: 210267	1: lac .d1
 010611: 741200	   sna
 010612: 610663	   jmp LL19
-010613: 154636	   dzm readline.startline
+010613: 154673	   dzm readline.startline
 010614: 214577	   lac c
-010615: 554610	   sad d32
+010615: 554613	   sad d32
 010616: 610621	   jmp 1f
 010617: 750000	   cla
 010620: 610622	   jmp 2f
 010621: 210267	1: lac .d1
 010622: 741200	   sna
 010623: 610635	   jmp LL22
-010624: 214610	   lac d32
+010624: 214613	   lac d32
 010625: 054025	   dac .temp1
 010626: 214200	   lac assyline
 010627: 354307	   tad assylen
@@ -348,7 +348,7 @@
 010633: 454307	   isz assylen
 010634: 740000	   nop
 010635: 214577	   lac c
-010636: 554623	   sad d9
+010636: 554631	   sad d9
 010637: 610642	   jmp 1f
 010640: 750000	   cla
 010641: 610643	   jmp 2f
@@ -358,7 +358,7 @@
 010645: 111132	   jms tabulate
 010646: 054025	   dac .temp1
 010647: 214577	   lac c
-010650: 554631	   sad d10
+010650: 554610	   sad d10
 010651: 610654	   jmp 1f
 010652: 750000	   cla
 010653: 610655	   jmp 2f
@@ -370,17 +370,17 @@
 010661: 054577	   dac c
 010662: 610555	   jmp LL10
 010663: 214577	   lac c
-010664: 054650	   dac isspace.c
+010664: 054645	   dac isspace.c
 010665: 113401	   jms isspace
 010666: 741200	   sna
 010667: 610736	   jmp LL31
-010670: 214635	   lac readline.doingword
+010670: 214672	   lac readline.doingword
 010671: 741200	   sna
 010672: 610736	   jmp LL33
 010673: 111061	   jms bumpword
 010674: 054025	   dac .temp1
 010675: 214577	   lac c
-010676: 554623	   sad d9
+010676: 554631	   sad d9
 010677: 610702	   jmp 1f
 010700: 750000	   cla
 010701: 610703	   jmp 2f
@@ -393,7 +393,7 @@
 010710: 214307	   lac assylen
 010711: 741200	   sna
 010712: 610724	   jmp LL38
-010713: 214610	   lac d32
+010713: 214613	   lac d32
 010714: 054025	   dac .temp1
 010715: 214200	   lac assyline
 010716: 354307	   tad assylen
@@ -402,9 +402,9 @@
 010721: 074051	   dac .ptr i
 010722: 454307	   isz assylen
 010723: 740000	   nop
-010724: 154635	   dzm readline.doingword
+010724: 154672	   dzm readline.doingword
 010725: 214577	   lac c
-010726: 554631	   sad d10
+010726: 554610	   sad d10
 010727: 610732	   jmp 1f
 010730: 750000	   cla
 010731: 610733	   jmp 2f
@@ -413,16 +413,16 @@
 010734: 610736	   jmp LL40
 010735: 611035	   jmp LL11
 010736: 214577	   lac c
-010737: 054650	   dac isspace.c
+010737: 054645	   dac isspace.c
 010740: 113401	   jms isspace
-010741: 554620	   sad d0
+010741: 554604	   sad d0
 010742: 610745	   jmp 1f
 010743: 750000	   cla
 010744: 610746	   jmp 2f
 010745: 210267	1: lac .d1
 010746: 741200	   sna
 010747: 611031	   jmp LL43
-010750: 214635	   lac readline.doingword
+010750: 214672	   lac readline.doingword
 010751: 741200	   sna
 010752: 610771	   jmp LL46
 010753: 214572	   lac o_ul
@@ -439,7 +439,7 @@
 010766: 454177	   isz holdp
 010767: 740000	   nop
 010770: 611031	   jmp readline1
-010771: 214636	   lac readline.startline
+010771: 214673	   lac readline.startline
 010772: 741200	   sna
 010773: 611010	   jmp LL50
 010774: 214577	   lac c
@@ -450,12 +450,12 @@
 011001: 210267	1: lac .d1
 011002: 741200	   sna
 011003: 611010	   jmp LL52
-011004: 214626	   lac d1
+011004: 214620	   lac d1
 011005: 054530	   dac isrequest
 011006: 111240	   jms readreq
 011007: 630522	   jmp readline i
-011010: 214626	   lac d1
-011011: 054635	   dac readline.doingword
+011010: 214620	   lac d1
+011011: 054672	   dac readline.doingword
 011012: 214070	   lac holdword
 011013: 054177	   dac holdp
 011014: 214572	   lac o_ul
@@ -471,7 +471,7 @@
 011026: 074177	   dac holdp i
 011027: 454177	   isz holdp
 011030: 740000	   nop
-011031: 154636	   dzm readline.startline
+011031: 154673	   dzm readline.startline
 011032: 113347	   jms suck
 011033: 054577	   dac c
 011034: 610555	   jmp LL10
@@ -482,23 +482,23 @@
 011041: 354572	
 011042: 054572	   dac o_ul
 011043: 214577	   lac c
-011044: 554617	   sad d4
+011044: 554630	   sad d4
 011045: 611050	   jmp 1f
 011046: 210267	   lac .d1
 011047: 611051	   jmp 2f
 011050: 750000	1: cla
 011051: 741200	   sna
 011052: 611056	   jmp LL59
-011053: 214626	   lac d1
+011053: 214620	   lac d1
 011054: 630522	   jmp readline i
 011055: 611060	   jmp LL60
-011056: 214620	   lac d0
+011056: 214604	   lac d0
 011057: 630522	   jmp readline i
 011060: 630522	   jmp readline i
 011061: 000000	bumpword: 0
 011062: 174177	   dzm holdp i
 011063: 214070	   lac holdword
-011064: 054643	   dac strlen.s
+011064: 054675	   dac strlen.s
 011065: 114011	   jms strlen
 011066: 054025	   dac .temp1
 011067: 214307	   lac assylen
@@ -514,20 +514,20 @@
 011101: 741200	   sna
 011102: 611110	   jmp LL61
 011103: 214563	   lac o_ad
-011104: 054655	   dac writeline.adflag
-011105: 154657	   dzm writeline.flushflag
+011104: 054677	   dac writeline.adflag
+011105: 154701	   dzm writeline.flushflag
 011106: 112127	   jms writeline
 011107: 054025	   dac .temp1
 011110: 214200	   lac assyline
 011111: 354307	   tad assylen
-011112: 054632	   dac bumpword.x
-011113: 054633	   dac strcpy.dst
+011112: 054644	   dac bumpword.x
+011113: 054665	   dac strcpy.dst
 011114: 214070	   lac holdword
-011115: 054634	   dac strcpy.src
+011115: 054664	   dac strcpy.src
 011116: 113774	   jms strcpy
 011117: 054025	   dac .temp1
 011120: 214070	   lac holdword
-011121: 054643	   dac strlen.s
+011121: 054675	   dac strlen.s
 011122: 114011	   jms strlen
 011123: 054026	   dac .temp2
 011124: 214307	   lac assylen
@@ -537,8 +537,8 @@
 011130: 054177	   dac holdp
 011131: 631061	   jmp bumpword i
 011132: 000000	tabulate: 0
-011133: 154704	   dzm tabulate.j
-011134: 214704	   lac tabulate.j
+011133: 154637	   dzm tabulate.j
+011134: 214637	   lac tabulate.j
 011135: 740001	   cma
 011136: 354561	   tad n_ta
 011137: 740001	   cma
@@ -547,11 +547,11 @@
 011142: 741200	   sna
 011143: 611226	   jmp LL64
 011144: 214534	   lac o_ta
-011145: 354704	   tad tabulate.j
+011145: 354637	   tad tabulate.j
 011146: 054051	   dac .ptr
 011147: 234051	   lac .ptr i
 011150: 740001	   cma
-011151: 354626	   tad d1
+011151: 354620	   tad d1
 011152: 740001	   cma
 011153: 054025	   dac .temp1
 011154: 214307	   lac assylen
@@ -567,11 +567,11 @@
 011166: 354533	   tad o_in
 011167: 054025	   dac .temp1
 011170: 214534	   lac o_ta
-011171: 354704	   tad tabulate.j
+011171: 354637	   tad tabulate.j
 011172: 054051	   dac .ptr
 011173: 234051	   lac .ptr i
 011174: 740001	   cma
-011175: 354626	   tad d1
+011175: 354620	   tad d1
 011176: 740001	   cma
 011177: 054026	   dac .temp2
 011200: 214025	   lac .temp1
@@ -593,7 +593,7 @@
 011220: 740000	   nop
 011221: 611165	   jmp LL67
 011222: 631132	   jmp tabulate i
-011223: 454704	   isz tabulate.j
+011223: 454637	   isz tabulate.j
 011224: 740000	   nop
 011225: 611134	   jmp LL63
 011226: 214532	   lac o_tc
@@ -613,7 +613,7 @@
 011244: 611465	   jmp readend
 011245: 113347	   jms suck
 011246: 054577	   dac c
-011247: 554617	   sad d4
+011247: 554630	   sad d4
 011250: 611253	   jmp 1f
 011251: 750000	   cla
 011252: 611254	   jmp 2f
@@ -622,7 +622,7 @@
 011255: 611257	   jmp LL71
 011256: 611465	   jmp readend
 011257: 214577	   lac c
-011260: 554631	   sad d10
+011260: 554610	   sad d10
 011261: 611264	   jmp 1f
 011262: 750000	   cla
 011263: 611265	   jmp 2f
@@ -631,19 +631,19 @@
 011266: 611270	   jmp LL74
 011267: 611465	   jmp readend
 011270: 214577	   lac c
-011271: 554607	   sad d46
+011271: 554623	   sad d46
 011272: 611275	   jmp 1f
 011273: 750000	   cla
 011274: 611276	   jmp 2f
 011275: 210267	1: lac .d1
 011276: 741200	   sna
 011277: 611330	   jmp LL77
-011300: 214626	   lac d1
+011300: 214620	   lac d1
 011301: 741200	   sna
 011302: 611327	   jmp LL81
 011303: 113347	   jms suck
 011304: 054577	   dac c
-011305: 554617	   sad d4
+011305: 554630	   sad d4
 011306: 611311	   jmp 1f
 011307: 750000	   cla
 011310: 611312	   jmp 2f
@@ -652,7 +652,7 @@
 011313: 611315	   jmp LL82
 011314: 611327	   jmp LL81
 011315: 214577	   lac c
-011316: 554631	   sad d10
+011316: 554610	   sad d10
 011317: 611322	   jmp 1f
 011320: 750000	   cla
 011321: 611323	   jmp 2f
@@ -664,10 +664,10 @@
 011327: 611465	   jmp readend
 011330: 214577	   lac c
 011331: 640611	   lls 9
-011332: 054673	   dac readreq.r
+011332: 054646	   dac readreq.r
 011333: 113347	   jms suck
 011334: 054577	   dac c
-011335: 554617	   sad d4
+011335: 554630	   sad d4
 011336: 611341	   jmp 1f
 011337: 210267	   lac .d1
 011340: 611342	   jmp 2f
@@ -675,7 +675,7 @@
 011342: 741200	   sna
 011343: 611361	   jmp LL88
 011344: 214577	   lac c
-011345: 554631	   sad d10
+011345: 554610	   sad d10
 011346: 611351	   jmp 1f
 011347: 210267	   lac .d1
 011350: 611352	   jmp 2f
@@ -684,11 +684,11 @@
 011353: 611361	   jmp LL90
 011354: 214577	   lac c
 011355: 652000	   lmq
-011356: 214673	   lac readreq.r
+011356: 214646	   lac readreq.r
 011357: 640002	   omq
-011360: 054673	   dac readreq.r
-011361: 214673	   lac readreq.r
-011362: 554624	   sad d56936
+011360: 054646	   dac readreq.r
+011361: 214646	   lac readreq.r
+011362: 554616	   sad d56936
 011363: 611366	   jmp 1f
 011364: 750000	   cla
 011365: 611367	   jmp 2f
@@ -696,11 +696,11 @@
 011367: 741200	   sna
 011370: 611375	   jmp LL92
 011371: 214310	   lac ohead
-011372: 054676	   dac tread.s
+011372: 054704	   dac tread.s
 011373: 111503	   jms tread
 011374: 054577	   dac c
-011375: 214673	   lac readreq.r
-011376: 554625	   sad d58992
+011375: 214646	   lac readreq.r
+011376: 554612	   sad d58992
 011377: 611402	   jmp 1f
 011400: 750000	   cla
 011401: 611403	   jmp 2f
@@ -711,8 +711,8 @@
 011406: 054565	   dac o_sp
 011407: 112030	   jms writebreak
 011410: 054025	   dac .temp1
-011411: 214673	   lac readreq.r
-011412: 554603	   sad d59489
+011411: 214646	   lac readreq.r
+011412: 554627	   sad d59489
 011413: 611416	   jmp 1f
 011414: 750000	   cla
 011415: 611417	   jmp 2f
@@ -721,8 +721,8 @@
 011420: 611423	   jmp LL98
 011421: 111670	   jms do_ta
 011422: 054025	   dac .temp1
-011423: 214673	   lac readreq.r
-011424: 554615	   sad d60012
+011423: 214646	   lac readreq.r
+011424: 554607	   sad d60012
 011425: 611430	   jmp 1f
 011426: 750000	   cla
 011427: 611431	   jmp 2f
@@ -731,11 +731,11 @@
 011432: 611435	   jmp LL101
 011433: 111570	   jms nread
 011434: 054572	   dac o_ul
-011435: 214626	   lac d1
+011435: 214620	   lac d1
 011436: 741200	   sna
 011437: 611465	   jmp LL105
 011440: 214577	   lac c
-011441: 554617	   sad d4
+011441: 554630	   sad d4
 011442: 611445	   jmp 1f
 011443: 750000	   cla
 011444: 611446	   jmp 2f
@@ -744,7 +744,7 @@
 011447: 611451	   jmp LL106
 011450: 611465	   jmp LL105
 011451: 214577	   lac c
-011452: 554631	   sad d10
+011452: 554610	   sad d10
 011453: 611456	   jmp 1f
 011454: 750000	   cla
 011455: 611457	   jmp 2f
@@ -756,35 +756,35 @@
 011463: 054577	   dac c
 011464: 611435	   jmp LL104
 011465: 214577	   lac c
-011466: 554617	   sad d4
+011466: 554630	   sad d4
 011467: 611472	   jmp 1f
 011470: 210267	   lac .d1
 011471: 611473	   jmp 2f
 011472: 750000	1: cla
 011473: 741200	   sna
 011474: 611500	   jmp LL112
-011475: 214626	   lac d1
+011475: 214620	   lac d1
 011476: 631240	   jmp readreq i
 011477: 611502	   jmp LL113
-011500: 214620	   lac d0
+011500: 214604	   lac d0
 011501: 631240	   jmp readreq i
 011502: 631240	   jmp readreq i
 011503: 000000	tread: 0
-011504: 154675	   dzm tread.leadbl
-011505: 214626	   lac d1
+011504: 154705	   dzm tread.leadbl
+011505: 214620	   lac d1
 011506: 741200	   sna
 011507: 611567	   jmp LL115
 011510: 113347	   jms suck
 011511: 054577	   dac c
-011512: 554610	   sad d32
+011512: 554613	   sad d32
 011513: 611516	   jmp 1f
 011514: 750000	   cla
 011515: 611517	   jmp 2f
 011516: 210267	1: lac .d1
 011517: 741200	   sna
 011520: 611532	   jmp LL116
-011521: 214675	   lac tread.leadbl
-011522: 554620	   sad d0
+011521: 214705	   lac tread.leadbl
+011522: 554604	   sad d0
 011523: 611526	   jmp 1f
 011524: 750000	   cla
 011525: 611527	   jmp 2f
@@ -793,52 +793,52 @@
 011530: 611532	   jmp LL119
 011531: 611505	   jmp LL114
 011532: 214577	   lac c
-011533: 554617	   sad d4
+011533: 554630	   sad d4
 011534: 611537	   jmp 1f
 011535: 750000	   cla
 011536: 611540	   jmp 2f
 011537: 210267	1: lac .d1
 011540: 741200	   sna
 011541: 611545	   jmp LL122
-011542: 174676	   dzm tread.s i
+011542: 174704	   dzm tread.s i
 011543: 214577	   lac c
 011544: 631503	   jmp tread i
 011545: 214577	   lac c
-011546: 554631	   sad d10
+011546: 554610	   sad d10
 011547: 611552	   jmp 1f
 011550: 750000	   cla
 011551: 611553	   jmp 2f
 011552: 210267	1: lac .d1
 011553: 741200	   sna
 011554: 611560	   jmp LL125
-011555: 174676	   dzm tread.s i
+011555: 174704	   dzm tread.s i
 011556: 214577	   lac c
 011557: 631503	   jmp tread i
 011560: 214577	   lac c
-011561: 074676	   dac tread.s i
-011562: 454676	   isz tread.s
+011561: 074704	   dac tread.s i
+011562: 454704	   isz tread.s
 011563: 740000	   nop
-011564: 454675	   isz tread.leadbl
+011564: 454705	   isz tread.leadbl
 011565: 740000	   nop
 011566: 611505	   jmp LL114
 011567: 631503	   jmp tread i
 011570: 000000	nread: 0
-011571: 154700	   dzm nread.i
-011572: 154677	   dzm nread.f
+011571: 154670	   dzm nread.i
+011572: 154671	   dzm nread.f
 011573: 111747	   jms skipsp
-011574: 554620	   sad d0
+011574: 554604	   sad d0
 011575: 611600	   jmp 1f
 011576: 750000	   cla
 011577: 611601	   jmp 2f
 011600: 210267	1: lac .d1
 011601: 741200	   sna
 011602: 611654	   jmp LL128
-011603: 214626	   lac d1
+011603: 214620	   lac d1
 011604: 741200	   sna
 011605: 611654	   jmp LL132
 011606: 113347	   jms suck
 011607: 054577	   dac c
-011610: 554617	   sad d4
+011610: 554630	   sad d4
 011611: 611614	   jmp 1f
 011612: 750000	   cla
 011613: 611615	   jmp 2f
@@ -847,55 +847,55 @@
 011616: 611620	   jmp LL133
 011617: 611654	   jmp LL132
 011620: 214577	   lac c
-011621: 054650	   dac isspace.c
+011621: 054645	   dac isspace.c
 011622: 113401	   jms isspace
 011623: 741200	   sna
 011624: 611626	   jmp LL136
 011625: 611654	   jmp LL132
 011626: 214577	   lac c
-011627: 054701	   dac isdigit.c
+011627: 054667	   dac isdigit.c
 011630: 113563	   jms isdigit
 011631: 741200	   sna
 011632: 611652	   jmp LL138
-011633: 454677	   isz nread.f
+011633: 454671	   isz nread.f
 011634: 740000	   nop
-011635: 214631	   lac d10
+011635: 214610	   lac d10
 011636: 051642	   dac .+4
-011637: 214700	   lac nread.i
+011637: 214670	   lac nread.i
 011640: 744000	   cll; mul; ..; lacq
 011641: 653122	
 011642: 010000	
 011643: 641002	
 011644: 354577	   tad c
 011645: 740001	   cma
-011646: 354604	   tad d48
+011646: 354614	   tad d48
 011647: 740001	   cma
-011650: 054700	   dac nread.i
+011650: 054670	   dac nread.i
 011651: 611653	   jmp LL139
 011652: 611654	   jmp LL132
 011653: 611603	   jmp LL131
-011654: 214677	   lac nread.f
-011655: 554620	   sad d0
+011654: 214671	   lac nread.f
+011655: 554604	   sad d0
 011656: 611661	   jmp 1f
 011657: 750000	   cla
 011660: 611662	   jmp 2f
 011661: 210267	1: lac .d1
 011662: 741200	   sna
 011663: 611666	   jmp LL140
-011664: 214626	   lac d1
-011665: 054700	   dac nread.i
-011666: 214700	   lac nread.i
+011664: 214620	   lac d1
+011665: 054670	   dac nread.i
+011666: 214670	   lac nread.i
 011667: 631570	   jmp nread i
 011670: 000000	do_ta: 0
 011671: 154561	   dzm n_ta
-011672: 214626	   lac d1
+011672: 214620	   lac d1
 011673: 741200	   sna
 011674: 611746	   jmp LL144
-011675: 214671	   lac do_ta.v
-011676: 054700	   dac nread.i
+011675: 214636	   lac do_ta.v
+011676: 054670	   dac nread.i
 011677: 111570	   jms nread
-011700: 054671	   dac do_ta.v
-011701: 554626	   sad d1
+011700: 054636	   dac do_ta.v
+011701: 554620	   sad d1
 011702: 611705	   jmp 1f
 011703: 750000	   cla
 011704: 611706	   jmp 2f
@@ -904,7 +904,7 @@
 011707: 611712	   jmp LL145
 011710: 631670	   jmp do_ta i
 011711: 611723	   jmp LL146
-011712: 214671	   lac do_ta.v
+011712: 214636	   lac do_ta.v
 011713: 054025	   dac .temp1
 011714: 214534	   lac o_ta
 011715: 354561	   tad n_ta
@@ -914,7 +914,7 @@
 011721: 454561	   isz n_ta
 011722: 740000	   nop
 011723: 214577	   lac c
-011724: 554631	   sad d10
+011724: 554610	   sad d10
 011725: 611730	   jmp 1f
 011726: 750000	   cla
 011727: 611731	   jmp 2f
@@ -923,7 +923,7 @@
 011732: 611734	   jmp LL148
 011733: 611746	   jmp LL144
 011734: 214577	   lac c
-011735: 554617	   sad d4
+011735: 554630	   sad d4
 011736: 611741	   jmp 1f
 011737: 750000	   cla
 011740: 611742	   jmp 2f
@@ -934,32 +934,32 @@
 011745: 611672	   jmp LL143
 011746: 631670	   jmp do_ta i
 011747: 000000	skipsp: 0
-011750: 214626	   lac d1
+011750: 214620	   lac d1
 011751: 741200	   sna
 011752: 612027	   jmp LL155
 011753: 113347	   jms suck
 011754: 054577	   dac c
-011755: 554617	   sad d4
+011755: 554630	   sad d4
 011756: 611761	   jmp 1f
 011757: 750000	   cla
 011760: 611762	   jmp 2f
 011761: 210267	1: lac .d1
 011762: 741200	   sna
 011763: 611766	   jmp LL156
-011764: 214626	   lac d1
+011764: 214620	   lac d1
 011765: 631747	   jmp skipsp i
 011766: 214577	   lac c
-011767: 554631	   sad d10
+011767: 554610	   sad d10
 011770: 611773	   jmp 1f
 011771: 750000	   cla
 011772: 611774	   jmp 2f
 011773: 210267	1: lac .d1
 011774: 741200	   sna
 011775: 612000	   jmp LL159
-011776: 214626	   lac d1
+011776: 214620	   lac d1
 011777: 631747	   jmp skipsp i
 012000: 214577	   lac c
-012001: 554610	   sad d32
+012001: 554613	   sad d32
 012002: 612005	   jmp 1f
 012003: 750000	   cla
 012004: 612006	   jmp 2f
@@ -968,7 +968,7 @@
 012007: 612011	   jmp LL162
 012010: 611750	   jmp LL154
 012011: 214577	   lac c
-012012: 554623	   sad d9
+012012: 554631	   sad d9
 012013: 612016	   jmp 1f
 012014: 750000	   cla
 012015: 612017	   jmp 2f
@@ -978,7 +978,7 @@
 012021: 611750	   jmp LL154
 012022: 214577	   lac c
 012023: 054600	   dac cachec
-012024: 214620	   lac d0
+012024: 214604	   lac d0
 012025: 631747	   jmp skipsp i
 012026: 611750	   jmp LL154
 012027: 631747	   jmp skipsp i
@@ -986,20 +986,20 @@
 012031: 214307	   lac assylen
 012032: 741200	   sna
 012033: 612041	   jmp LL168
-012034: 154655	   dzm writeline.adflag
-012035: 214626	   lac d1
-012036: 054657	   dac writeline.flushflag
+012034: 154677	   dzm writeline.adflag
+012035: 214620	   lac d1
+012036: 054701	   dac writeline.flushflag
 012037: 112127	   jms writeline
 012040: 054025	   dac .temp1
 012041: 214576	   lac TXTLEN
-012042: 054703	   dac writebreak.q
+012042: 054634	   dac writebreak.q
 012043: 214565	   lac o_sp
 012044: 741200	   sna
 012045: 612100	   jmp LL170
 012046: 214565	   lac o_sp
 012047: 354574	   tad line_no
 012050: 054025	   dac .temp1
-012051: 214703	   lac writebreak.q
+012051: 214634	   lac writebreak.q
 012052: 740001	   cma
 012053: 354025	   tad .temp1
 012054: 740001	   cma
@@ -1038,8 +1038,8 @@
 012115: 612120	   jmp LL178
 012116: 112271	   jms newpage
 012117: 054025	   dac .temp1
-012120: 214631	   lac d10
-012121: 054653	   dac spit.c
+012120: 214610	   lac d10
+012121: 054662	   dac spit.c
 012122: 113222	   jms spit
 012123: 054026	   dac .temp2
 012124: 454574	   isz line_no
@@ -1048,17 +1048,17 @@
 012127: 000000	writeline: 0
 012130: 214307	   lac assylen
 012131: 740001	   cma
-012132: 354626	   tad d1
+012132: 354620	   tad d1
 012133: 740001	   cma
-012134: 054656	   dac writeline.j
-012135: 214656	   lac writeline.j
+012134: 054702	   dac writeline.j
+012135: 214702	   lac writeline.j
 012136: 741200	   sna
 012137: 612164	   jmp LL181
 012140: 214200	   lac assyline
-012141: 354656	   tad writeline.j
+012141: 354702	   tad writeline.j
 012142: 054051	   dac .ptr
 012143: 234051	   lac .ptr i
-012144: 554610	   sad d32
+012144: 554613	   sad d32
 012145: 612150	   jmp 1f
 012146: 750000	   cla
 012147: 612151	   jmp 2f
@@ -1071,14 +1071,14 @@
 012156: 612160	   jmp LL183
 012157: 612164	   jmp LL181
 012160: 777777	   -1 ; tad writeline.j
-012161: 354656	
-012162: 054656	   dac writeline.j
+012161: 354702	
+012162: 054702	   dac writeline.j
 012163: 612135	   jmp LL180
 012164: 214576	   lac TXTLEN
-012165: 054660	   dac writeline.q
+012165: 054700	   dac writeline.q
 012166: 214574	   lac line_no
 012167: 740001	   cma
-012170: 354660	   tad writeline.q
+012170: 354700	   tad writeline.q
 012171: 740001	   cma
 012172: 741100	   spa
 012173: 612177	   jmp 1f
@@ -1090,8 +1090,8 @@
 012201: 612204	   jmp LL185
 012202: 112271	   jms newpage
 012203: 054025	   dac .temp1
-012204: 154656	   dzm writeline.j
-012205: 214656	   lac writeline.j
+012204: 154702	   dzm writeline.j
+012205: 214702	   lac writeline.j
 012206: 740001	   cma
 012207: 354307	   tad assylen
 012210: 740001	   cma
@@ -1100,17 +1100,17 @@
 012213: 741200	   sna
 012214: 612227	   jmp LL188
 012215: 214200	   lac assyline
-012216: 354656	   tad writeline.j
+012216: 354702	   tad writeline.j
 012217: 054051	   dac .ptr
 012220: 234051	   lac .ptr i
-012221: 054653	   dac spit.c
+012221: 054662	   dac spit.c
 012222: 113222	   jms spit
 012223: 054025	   dac .temp1
-012224: 454656	   isz writeline.j
+012224: 454702	   isz writeline.j
 012225: 740000	   nop
 012226: 612205	   jmp LL187
-012227: 214631	   lac d10
-012230: 054653	   dac spit.c
+012227: 214610	   lac d10
+012230: 054662	   dac spit.c
 012231: 113222	   jms spit
 012232: 054026	   dac .temp2
 012233: 154307	   dzm assylen
@@ -1121,8 +1121,8 @@
 012240: 074051	   dac .ptr i
 012241: 454574	   isz line_no
 012242: 740000	   nop
-012243: 214657	   lac writeline.flushflag
-012244: 554620	   sad d0
+012243: 214701	   lac writeline.flushflag
+012244: 554604	   sad d0
 012245: 612250	   jmp 1f
 012246: 750000	   cla
 012247: 612251	   jmp 2f
@@ -1130,13 +1130,13 @@
 012251: 741200	   sna
 012252: 612270	   jmp LL189
 012253: 214200	   lac assyline
-012254: 054633	   dac strcpy.dst
+012254: 054665	   dac strcpy.dst
 012255: 214070	   lac holdword
-012256: 054634	   dac strcpy.src
+012256: 054664	   dac strcpy.src
 012257: 113774	   jms strcpy
 012260: 054025	   dac .temp1
 012261: 214070	   lac holdword
-012262: 054643	   dac strlen.s
+012262: 054675	   dac strlen.s
 012263: 114011	   jms strlen
 012264: 054307	   dac assylen
 012265: 174070	   dzm holdword i
@@ -1156,14 +1156,14 @@
 012303: 112362	   jms endpage
 012304: 054025	   dac .temp1
 012305: 612310	   jmp LL193
-012306: 214626	   lac d1
+012306: 214620	   lac d1
 012307: 054573	   dac page_no
 012310: 112313	   jms beginpage
 012311: 054025	   dac .temp1
 012312: 632271	   jmp newpage i
 012313: 000000	beginpage: 0
-012314: 154672	   dzm beginpage.i
-012315: 214672	   lac beginpage.i
+012314: 154647	   dzm beginpage.i
+012315: 214647	   lac beginpage.i
 012316: 740001	   cma
 012317: 354566	   tad o_m1
 012320: 740001	   cma
@@ -1171,19 +1171,19 @@
 012322: 750000	   cla
 012323: 741200	   sna
 012324: 612334	   jmp LL195
-012325: 214631	   lac d10
-012326: 054653	   dac spit.c
+012325: 214610	   lac d10
+012326: 054662	   dac spit.c
 012327: 113222	   jms spit
 012330: 054025	   dac .temp1
-012331: 454672	   isz beginpage.i
+012331: 454647	   isz beginpage.i
 012332: 740000	   nop
 012333: 612315	   jmp LL194
 012334: 214310	   lac ohead
-012335: 054662	   dac writetitle.t
+012335: 054651	   dac writetitle.t
 012336: 112455	   jms writetitle
 012337: 054026	   dac .temp2
-012340: 154672	   dzm beginpage.i
-012341: 214672	   lac beginpage.i
+012340: 154647	   dzm beginpage.i
+012341: 214647	   lac beginpage.i
 012342: 740001	   cma
 012343: 354567	   tad o_m2
 012344: 740001	   cma
@@ -1191,19 +1191,19 @@
 012346: 750000	   cla
 012347: 741200	   sna
 012350: 612360	   jmp LL197
-012351: 214631	   lac d10
-012352: 054653	   dac spit.c
+012351: 214610	   lac d10
+012352: 054662	   dac spit.c
 012353: 113222	   jms spit
 012354: 054025	   dac .temp1
-012355: 454672	   isz beginpage.i
+012355: 454647	   isz beginpage.i
 012356: 740000	   nop
 012357: 612341	   jmp LL196
 012360: 154574	   dzm line_no
 012361: 632313	   jmp beginpage i
 012362: 000000	endpage: 0
 012363: 214574	   lac line_no
-012364: 054645	   dac endpage.i
-012365: 214645	   lac endpage.i
+012364: 054674	   dac endpage.i
+012365: 214674	   lac endpage.i
 012366: 740001	   cma
 012367: 354576	   tad TXTLEN
 012370: 740001	   cma
@@ -1211,17 +1211,17 @@
 012372: 750000	   cla
 012373: 741200	   sna
 012374: 612406	   jmp LL199
-012375: 214631	   lac d10
-012376: 054653	   dac spit.c
+012375: 214610	   lac d10
+012376: 054662	   dac spit.c
 012377: 113222	   jms spit
 012400: 054025	   dac .temp1
 012401: 454574	   isz line_no
 012402: 740000	   nop
-012403: 454645	   isz endpage.i
+012403: 454674	   isz endpage.i
 012404: 740000	   nop
 012405: 612365	   jmp LL198
-012406: 154645	   dzm endpage.i
-012407: 214645	   lac endpage.i
+012406: 154674	   dzm endpage.i
+012407: 214674	   lac endpage.i
 012410: 740001	   cma
 012411: 354570	   tad o_m3
 012412: 740001	   cma
@@ -1229,19 +1229,19 @@
 012414: 750000	   cla
 012415: 741200	   sna
 012416: 612426	   jmp LL201
-012417: 214631	   lac d10
-012420: 054653	   dac spit.c
+012417: 214610	   lac d10
+012420: 054662	   dac spit.c
 012421: 113222	   jms spit
 012422: 054025	   dac .temp1
-012423: 454645	   isz endpage.i
+012423: 454674	   isz endpage.i
 012424: 740000	   nop
 012425: 612407	   jmp LL200
 012426: 214417	   lac ofoot
-012427: 054662	   dac writetitle.t
+012427: 054651	   dac writetitle.t
 012430: 112455	   jms writetitle
 012431: 054026	   dac .temp2
-012432: 154645	   dzm endpage.i
-012433: 214645	   lac endpage.i
+012432: 154674	   dzm endpage.i
+012433: 214674	   lac endpage.i
 012434: 740001	   cma
 012435: 354571	   tad o_m4
 012436: 740001	   cma
@@ -1249,51 +1249,51 @@
 012440: 750000	   cla
 012441: 741200	   sna
 012442: 612452	   jmp LL203
-012443: 214631	   lac d10
-012444: 054653	   dac spit.c
+012443: 214610	   lac d10
+012444: 054662	   dac spit.c
 012445: 113222	   jms spit
 012446: 054025	   dac .temp1
-012447: 454645	   isz endpage.i
+012447: 454674	   isz endpage.i
 012450: 740000	   nop
 012451: 612433	   jmp LL202
 012452: 454573	   isz page_no
 012453: 740000	   nop
 012454: 632362	   jmp endpage i
 012455: 000000	writetitle: 0
-012456: 234662	   lac writetitle.t i
-012457: 054664	   dac writetitle.d
-012460: 554620	   sad d0
+012456: 234651	   lac writetitle.t i
+012457: 054654	   dac writetitle.d
+012460: 554604	   sad d0
 012461: 612464	   jmp 1f
 012462: 750000	   cla
 012463: 612465	   jmp 2f
 012464: 210267	1: lac .d1
 012465: 741200	   sna
 012466: 612474	   jmp LL204
-012467: 214631	   lac d10
-012470: 054653	   dac spit.c
+012467: 214610	   lac d10
+012470: 054662	   dac spit.c
 012471: 113222	   jms spit
 012472: 054025	   dac .temp1
 012473: 632455	   jmp writetitle i
 012474: 113126	   jms pgform
-012475: 054665	   dac writetitle.pst
-012476: 054643	   dac strlen.s
+012475: 054657	   dac writetitle.pst
+012476: 054675	   dac strlen.s
 012477: 114011	   jms strlen
-012500: 054666	   dac writetitle.pstlen
-012501: 454662	   isz writetitle.t
+012500: 054652	   dac writetitle.pstlen
+012501: 454651	   isz writetitle.t
 012502: 740000	   nop
-012503: 214662	   lac writetitle.t
-012504: 054640	   dac titlen.t
-012505: 214664	   lac writetitle.d
-012506: 054641	   dac titlen.c
-012507: 214666	   lac writetitle.pstlen
-012510: 054642	   dac titlen.k
+012503: 214651	   lac writetitle.t
+012504: 054642	   dac titlen.t
+012505: 214654	   lac writetitle.d
+012506: 054643	   dac titlen.c
+012507: 214652	   lac writetitle.pstlen
+012510: 054641	   dac titlen.k
 012511: 113134	   jms titlen
-012512: 054667	   dac writetitle.l
-012513: 214626	   lac d1
+012512: 054655	   dac writetitle.l
+012513: 214620	   lac d1
 012514: 741200	   sna
 012515: 612564	   jmp LL208
-012516: 234662	   lac writetitle.t i
-012517: 554620	   sad d0
+012516: 234651	   lac writetitle.t i
+012517: 554604	   sad d0
 012520: 612523	   jmp 1f
 012521: 750000	   cla
 012522: 612524	   jmp 2f
@@ -1301,8 +1301,8 @@
 012524: 741200	   sna
 012525: 612527	   jmp LL209
 012526: 612564	   jmp LL208
-012527: 234662	   lac writetitle.t i
-012530: 554664	   sad writetitle.d
+012527: 234651	   lac writetitle.t i
+012530: 554654	   sad writetitle.d
 012531: 612534	   jmp 1f
 012532: 750000	   cla
 012533: 612535	   jmp 2f
@@ -1310,57 +1310,57 @@
 012535: 741200	   sna
 012536: 612540	   jmp LL212
 012537: 612564	   jmp LL208
-012540: 234662	   lac writetitle.t i
-012541: 554622	   sad d37
+012540: 234651	   lac writetitle.t i
+012541: 554615	   sad d37
 012542: 612545	   jmp 1f
 012543: 750000	   cla
 012544: 612546	   jmp 2f
 012545: 210267	1: lac .d1
 012546: 741200	   sna
 012547: 612555	   jmp LL215
-012550: 214665	   lac writetitle.pst
-012551: 054702	   dac spits.s
+012550: 214657	   lac writetitle.pst
+012551: 054635	   dac spits.s
 012552: 113206	   jms spits
 012553: 054025	   dac .temp1
 012554: 612561	   jmp LL216
-012555: 234662	   lac writetitle.t i
-012556: 054653	   dac spit.c
+012555: 234651	   lac writetitle.t i
+012556: 054662	   dac spit.c
 012557: 113222	   jms spit
 012560: 054026	   dac .temp2
-012561: 454662	   isz writetitle.t
+012561: 454651	   isz writetitle.t
 012562: 740000	   nop
 012563: 612513	   jmp LL207
-012564: 234662	   lac writetitle.t i
-012565: 554620	   sad d0
+012564: 234651	   lac writetitle.t i
+012565: 554604	   sad d0
 012566: 612571	   jmp 1f
 012567: 750000	   cla
 012570: 612572	   jmp 2f
 012571: 210267	1: lac .d1
 012572: 741200	   sna
 012573: 612601	   jmp LL218
-012574: 214631	   lac d10
-012575: 054653	   dac spit.c
+012574: 214610	   lac d10
+012575: 054662	   dac spit.c
 012576: 113222	   jms spit
 012577: 054025	   dac .temp1
 012600: 632455	   jmp writetitle i
-012601: 454662	   isz writetitle.t
+012601: 454651	   isz writetitle.t
 012602: 740000	   nop
-012603: 214662	   lac writetitle.t
-012604: 054640	   dac titlen.t
-012605: 214664	   lac writetitle.d
-012606: 054641	   dac titlen.c
-012607: 214666	   lac writetitle.pstlen
-012610: 054642	   dac titlen.k
+012603: 214651	   lac writetitle.t
+012604: 054642	   dac titlen.t
+012605: 214654	   lac writetitle.d
+012606: 054643	   dac titlen.c
+012607: 214652	   lac writetitle.pstlen
+012610: 054641	   dac titlen.k
 012611: 113134	   jms titlen
-012612: 054661	   dac writetitle.m
-012613: 214667	   lac writetitle.l
-012614: 054663	   dac writetitle.j
+012612: 054650	   dac writetitle.m
+012613: 214655	   lac writetitle.l
+012614: 054656	   dac writetitle.j
 012615: 214562	   lac o_ll
 012616: 740001	   cma
-012617: 354661	   tad writetitle.m
+012617: 354650	   tad writetitle.m
 012620: 740001	   cma
 012621: 054025	   dac .temp1
-012622: 214627	   lac d2
+012622: 214624	   lac d2
 012623: 052627	   dac .+4
 012624: 214025	   lac .temp1
 012625: 744000	   cll; idiv; ..; lacq
@@ -1368,7 +1368,7 @@
 012627: 010000	
 012630: 641002	
 012631: 054025	   dac .temp1
-012632: 214663	   lac writetitle.j
+012632: 214656	   lac writetitle.j
 012633: 740001	   cma
 012634: 354025	   tad .temp1
 012635: 740001	   cma
@@ -1376,18 +1376,18 @@
 012637: 750000	   cla
 012640: 741200	   sna
 012641: 612651	   jmp LL222
-012642: 214610	   lac d32
-012643: 054653	   dac spit.c
+012642: 214613	   lac d32
+012643: 054662	   dac spit.c
 012644: 113222	   jms spit
 012645: 054025	   dac .temp1
-012646: 454663	   isz writetitle.j
+012646: 454656	   isz writetitle.j
 012647: 740000	   nop
 012650: 612615	   jmp LL221
-012651: 214626	   lac d1
+012651: 214620	   lac d1
 012652: 741200	   sna
 012653: 612722	   jmp LL224
-012654: 234662	   lac writetitle.t i
-012655: 554620	   sad d0
+012654: 234651	   lac writetitle.t i
+012655: 554604	   sad d0
 012656: 612661	   jmp 1f
 012657: 750000	   cla
 012660: 612662	   jmp 2f
@@ -1395,8 +1395,8 @@
 012662: 741200	   sna
 012663: 612665	   jmp LL225
 012664: 612722	   jmp LL224
-012665: 234662	   lac writetitle.t i
-012666: 554664	   sad writetitle.d
+012665: 234651	   lac writetitle.t i
+012666: 554654	   sad writetitle.d
 012667: 612672	   jmp 1f
 012670: 750000	   cla
 012671: 612673	   jmp 2f
@@ -1404,45 +1404,45 @@
 012673: 741200	   sna
 012674: 612676	   jmp LL228
 012675: 612722	   jmp LL224
-012676: 234662	   lac writetitle.t i
-012677: 554622	   sad d37
+012676: 234651	   lac writetitle.t i
+012677: 554615	   sad d37
 012700: 612703	   jmp 1f
 012701: 750000	   cla
 012702: 612704	   jmp 2f
 012703: 210267	1: lac .d1
 012704: 741200	   sna
 012705: 612713	   jmp LL231
-012706: 214665	   lac writetitle.pst
-012707: 054702	   dac spits.s
+012706: 214657	   lac writetitle.pst
+012707: 054635	   dac spits.s
 012710: 113206	   jms spits
 012711: 054025	   dac .temp1
 012712: 612717	   jmp LL232
-012713: 234662	   lac writetitle.t i
-012714: 054653	   dac spit.c
+012713: 234651	   lac writetitle.t i
+012714: 054662	   dac spit.c
 012715: 113222	   jms spit
 012716: 054026	   dac .temp2
-012717: 454662	   isz writetitle.t
+012717: 454651	   isz writetitle.t
 012720: 740000	   nop
 012721: 612651	   jmp LL223
-012722: 234662	   lac writetitle.t i
-012723: 554620	   sad d0
+012722: 234651	   lac writetitle.t i
+012723: 554604	   sad d0
 012724: 612727	   jmp 1f
 012725: 750000	   cla
 012726: 612730	   jmp 2f
 012727: 210267	1: lac .d1
 012730: 741200	   sna
 012731: 612737	   jmp LL234
-012732: 214631	   lac d10
-012733: 054653	   dac spit.c
+012732: 214610	   lac d10
+012733: 054662	   dac spit.c
 012734: 113222	   jms spit
 012735: 054025	   dac .temp1
 012736: 632455	   jmp writetitle i
 012737: 214562	   lac o_ll
 012740: 740001	   cma
-012741: 354661	   tad writetitle.m
+012741: 354650	   tad writetitle.m
 012742: 740001	   cma
 012743: 054026	   dac .temp2
-012744: 214627	   lac d2
+012744: 214624	   lac d2
 012745: 052751	   dac .+4
 012746: 214026	   lac .temp2
 012747: 744000	   cll; idiv; ..; lacq
@@ -1450,7 +1450,7 @@
 012751: 010000	
 012752: 641002	
 012753: 054026	   dac .temp2
-012754: 214667	   lac writetitle.l
+012754: 214655	   lac writetitle.l
 012755: 740001	   cma
 012756: 354026	   tad .temp2
 012757: 740001	   cma
@@ -1460,10 +1460,10 @@
 012763: 613005	   jmp LL237
 012764: 214562	   lac o_ll
 012765: 740001	   cma
-012766: 354661	   tad writetitle.m
+012766: 354650	   tad writetitle.m
 012767: 740001	   cma
 012770: 054025	   dac .temp1
-012771: 214627	   lac d2
+012771: 214624	   lac d2
 012772: 052776	   dac .+4
 012773: 214025	   lac .temp1
 012774: 744000	   cll; idiv; ..; lacq
@@ -1471,31 +1471,31 @@
 012776: 010000	
 012777: 641002	
 013000: 054025	   dac .temp1
-013001: 214661	   lac writetitle.m
+013001: 214650	   lac writetitle.m
 013002: 354025	   tad .temp1
-013003: 054661	   dac writetitle.m
+013003: 054650	   dac writetitle.m
 013004: 613010	   jmp LL238
-013005: 214661	   lac writetitle.m
-013006: 354667	   tad writetitle.l
-013007: 054661	   dac writetitle.m
-013010: 454662	   isz writetitle.t
+013005: 214650	   lac writetitle.m
+013006: 354655	   tad writetitle.l
+013007: 054650	   dac writetitle.m
+013010: 454651	   isz writetitle.t
 013011: 740000	   nop
-013012: 214662	   lac writetitle.t
-013013: 054640	   dac titlen.t
-013014: 214664	   lac writetitle.d
-013015: 054641	   dac titlen.c
-013016: 214666	   lac writetitle.pstlen
-013017: 054642	   dac titlen.k
+013012: 214651	   lac writetitle.t
+013013: 054642	   dac titlen.t
+013014: 214654	   lac writetitle.d
+013015: 054643	   dac titlen.c
+013016: 214652	   lac writetitle.pstlen
+013017: 054641	   dac titlen.k
 013020: 113134	   jms titlen
-013021: 054670	   dac writetitle.n
-013022: 214661	   lac writetitle.m
-013023: 054663	   dac writetitle.j
+013021: 054653	   dac writetitle.n
+013022: 214650	   lac writetitle.m
+013023: 054656	   dac writetitle.j
 013024: 214562	   lac o_ll
 013025: 740001	   cma
-013026: 354670	   tad writetitle.n
+013026: 354653	   tad writetitle.n
 013027: 740001	   cma
 013030: 054025	   dac .temp1
-013031: 214663	   lac writetitle.j
+013031: 214656	   lac writetitle.j
 013032: 740001	   cma
 013033: 354025	   tad .temp1
 013034: 740001	   cma
@@ -1503,18 +1503,18 @@
 013036: 750000	   cla
 013037: 741200	   sna
 013040: 613050	   jmp LL240
-013041: 214610	   lac d32
-013042: 054653	   dac spit.c
+013041: 214613	   lac d32
+013042: 054662	   dac spit.c
 013043: 113222	   jms spit
 013044: 054025	   dac .temp1
-013045: 454663	   isz writetitle.j
+013045: 454656	   isz writetitle.j
 013046: 740000	   nop
 013047: 613024	   jmp LL239
-013050: 214626	   lac d1
+013050: 214620	   lac d1
 013051: 741200	   sna
 013052: 613121	   jmp LL242
-013053: 234662	   lac writetitle.t i
-013054: 554620	   sad d0
+013053: 234651	   lac writetitle.t i
+013054: 554604	   sad d0
 013055: 613060	   jmp 1f
 013056: 750000	   cla
 013057: 613061	   jmp 2f
@@ -1522,8 +1522,8 @@
 013061: 741200	   sna
 013062: 613064	   jmp LL243
 013063: 613121	   jmp LL242
-013064: 234662	   lac writetitle.t i
-013065: 554664	   sad writetitle.d
+013064: 234651	   lac writetitle.t i
+013065: 554654	   sad writetitle.d
 013066: 613071	   jmp 1f
 013067: 750000	   cla
 013070: 613072	   jmp 2f
@@ -1531,44 +1531,44 @@
 013072: 741200	   sna
 013073: 613075	   jmp LL246
 013074: 613121	   jmp LL242
-013075: 234662	   lac writetitle.t i
-013076: 554622	   sad d37
+013075: 234651	   lac writetitle.t i
+013076: 554615	   sad d37
 013077: 613102	   jmp 1f
 013100: 750000	   cla
 013101: 613103	   jmp 2f
 013102: 210267	1: lac .d1
 013103: 741200	   sna
 013104: 613112	   jmp LL249
-013105: 214665	   lac writetitle.pst
-013106: 054702	   dac spits.s
+013105: 214657	   lac writetitle.pst
+013106: 054635	   dac spits.s
 013107: 113206	   jms spits
 013110: 054025	   dac .temp1
 013111: 613116	   jmp LL250
-013112: 234662	   lac writetitle.t i
-013113: 054653	   dac spit.c
+013112: 234651	   lac writetitle.t i
+013113: 054662	   dac spit.c
 013114: 113222	   jms spit
 013115: 054026	   dac .temp2
-013116: 454662	   isz writetitle.t
+013116: 454651	   isz writetitle.t
 013117: 740000	   nop
 013120: 613050	   jmp LL241
-013121: 214631	   lac d10
-013122: 054653	   dac spit.c
+013121: 214610	   lac d10
+013122: 054662	   dac spit.c
 013123: 113222	   jms spit
 013124: 054025	   dac .temp1
 013125: 632455	   jmp writetitle i
 013126: 000000	pgform: 0
 013127: 214573	   lac page_no
-013130: 054647	   dac itoa.n
+013130: 054632	   dac itoa.n
 013131: 113725	   jms itoa
-013132: 054674	   dac pgform.pst
+013132: 054703	   dac pgform.pst
 013133: 633126	   jmp pgform i
 013134: 000000	titlen: 0
-013135: 154637	   dzm titlen.q
-013136: 214626	   lac d1
+013135: 154640	   dzm titlen.q
+013136: 214620	   lac d1
 013137: 741200	   sna
 013140: 613204	   jmp LL253
-013141: 234640	   lac titlen.t i
-013142: 554620	   sad d0
+013141: 234642	   lac titlen.t i
+013142: 554604	   sad d0
 013143: 613146	   jmp 1f
 013144: 750000	   cla
 013145: 613147	   jmp 2f
@@ -1576,8 +1576,8 @@
 013147: 741200	   sna
 013150: 613152	   jmp LL254
 013151: 613204	   jmp LL253
-013152: 234640	   lac titlen.t i
-013153: 554641	   sad titlen.c
+013152: 234642	   lac titlen.t i
+013153: 554643	   sad titlen.c
 013154: 613157	   jmp 1f
 013155: 750000	   cla
 013156: 613160	   jmp 2f
@@ -1585,56 +1585,56 @@
 013160: 741200	   sna
 013161: 613163	   jmp LL257
 013162: 613204	   jmp LL253
-013163: 234640	   lac titlen.t i
-013164: 554622	   sad d37
+013163: 234642	   lac titlen.t i
+013164: 554615	   sad d37
 013165: 613170	   jmp 1f
 013166: 750000	   cla
 013167: 613171	   jmp 2f
 013170: 210267	1: lac .d1
 013171: 741200	   sna
 013172: 613177	   jmp LL260
-013173: 214637	   lac titlen.q
-013174: 354642	   tad titlen.k
-013175: 054637	   dac titlen.q
+013173: 214640	   lac titlen.q
+013174: 354641	   tad titlen.k
+013175: 054640	   dac titlen.q
 013176: 613201	   jmp LL261
-013177: 454637	   isz titlen.q
+013177: 454640	   isz titlen.q
 013200: 740000	   nop
-013201: 454640	   isz titlen.t
+013201: 454642	   isz titlen.t
 013202: 740000	   nop
 013203: 613136	   jmp LL252
-013204: 214637	   lac titlen.q
+013204: 214640	   lac titlen.q
 013205: 633134	   jmp titlen i
 013206: 000000	spits: 0
-013207: 234702	   lac spits.s i
+013207: 234635	   lac spits.s i
 013210: 741200	   sna
 013211: 613221	   jmp LL264
-013212: 234702	   lac spits.s i
-013213: 054653	   dac spit.c
+013212: 234635	   lac spits.s i
+013213: 054662	   dac spit.c
 013214: 113222	   jms spit
 013215: 054025	   dac .temp1
-013216: 454702	   isz spits.s
+013216: 454635	   isz spits.s
 013217: 740000	   nop
 013220: 613207	   jmp LL263
 013221: 633206	   jmp spits i
 013222: 000000	spit: 0
-013223: 214653	   lac spit.c
+013223: 214662	   lac spit.c
 013224: 514052	   and UNDERL
-013225: 054652	   dac spit.ulflag
+013225: 054663	   dac spit.ulflag
 013226: 214052	   lac UNDERL
-013227: 254616	   xor m1
+013227: 254621	   xor m1
 013230: 054025	   dac .temp1
-013231: 214653	   lac spit.c
+013231: 214662	   lac spit.c
 013232: 514025	   and .temp1
-013233: 054653	   dac spit.c
-013234: 554610	   sad d32
+013233: 054662	   dac spit.c
+013234: 554613	   sad d32
 013235: 613240	   jmp 1f
 013236: 210267	   lac .d1
 013237: 613241	   jmp 2f
 013240: 750000	1: cla
 013241: 741200	   sna
 013242: 613273	   jmp LL265
-013243: 214653	   lac spit.c
-013244: 554631	   sad d10
+013243: 214662	   lac spit.c
+013244: 554610	   sad d10
 013245: 613250	   jmp 1f
 013246: 210267	   lac .d1
 013247: 613251	   jmp 2f
@@ -1647,7 +1647,7 @@
 013256: 214602	   lac n_blanks
 013257: 741200	   sna
 013260: 613273	   jmp LL272
-013261: 214610	   lac d32
+013261: 214613	   lac d32
 013262: 050414	   dac putchar.c
 013263: 110222	   jms putchar
 013264: 054025	   dac .temp1
@@ -1657,15 +1657,15 @@
 013270: 354602	
 013271: 054602	   dac n_blanks
 013272: 613256	   jmp LL271
-013273: 214652	   lac spit.ulflag
+013273: 214663	   lac spit.ulflag
 013274: 741200	   sna
 013275: 613313	   jmp LL273
-013276: 214653	   lac spit.c
-013277: 054705	   dac isalnum.c
+013276: 214662	   lac spit.c
+013277: 054660	   dac isalnum.c
 013300: 113442	   jms isalnum
 013301: 741200	   sna
 013302: 613313	   jmp LL275
-013303: 214621	   lac d95
+013303: 214606	   lac d95
 013304: 050414	   dac putchar.c
 013305: 110222	   jms putchar
 013306: 054025	   dac .temp1
@@ -1673,8 +1673,8 @@
 013310: 050414	   dac putchar.c
 013311: 110222	   jms putchar
 013312: 054026	   dac .temp2
-013313: 214653	   lac spit.c
-013314: 554610	   sad d32
+013313: 214662	   lac spit.c
+013314: 554613	   sad d32
 013315: 613320	   jmp 1f
 013316: 750000	   cla
 013317: 613321	   jmp 2f
@@ -1684,14 +1684,14 @@
 013323: 454602	   isz n_blanks
 013324: 740000	   nop
 013325: 613334	   jmp LL278
-013326: 214653	   lac spit.c
+013326: 214662	   lac spit.c
 013327: 050414	   dac putchar.c
 013330: 110222	   jms putchar
 013331: 054025	   dac .temp1
 013332: 454601	   isz col_no
 013333: 740000	   nop
-013334: 214653	   lac spit.c
-013335: 554631	   sad d10
+013334: 214662	   lac spit.c
+013335: 554610	   sad d10
 013336: 613341	   jmp 1f
 013337: 750000	   cla
 013340: 613342	   jmp 2f
@@ -1702,14 +1702,14 @@
 013345: 154602	   dzm n_blanks
 013346: 633222	   jmp spit i
 013347: 000000	suck: 0
-013350: 214626	   lac d1
+013350: 214620	   lac d1
 013351: 741200	   sna
 013352: 613400	   jmp LL284
 013353: 214600	   lac cachec
 013354: 054577	   dac c
 013355: 154600	   dzm cachec
 013356: 214577	   lac c
-013357: 554620	   sad d0
+013357: 554604	   sad d0
 013360: 613363	   jmp 1f
 013361: 750000	   cla
 013362: 613364	   jmp 2f
@@ -1719,7 +1719,7 @@
 013366: 110232	   jms getchar
 013367: 054577	   dac c
 013370: 214577	   lac c
-013371: 054651	   dac islegal.c
+013371: 054666	   dac islegal.c
 013372: 113620	   jms islegal
 013373: 741200	   sna
 013374: 613377	   jmp LL288
@@ -1728,42 +1728,42 @@
 013377: 613350	   jmp LL283
 013400: 633347	   jmp suck i
 013401: 000000	isspace: 0
-013402: 214650	   lac isspace.c
-013403: 554610	   sad d32
+013402: 214645	   lac isspace.c
+013403: 554613	   sad d32
 013404: 613407	   jmp 1f
 013405: 750000	   cla
 013406: 613410	   jmp 2f
 013407: 210267	1: lac .d1
 013410: 741200	   sna
 013411: 613414	   jmp LL290
-013412: 214626	   lac d1
+013412: 214620	   lac d1
 013413: 633401	   jmp isspace i
-013414: 214650	   lac isspace.c
-013415: 554623	   sad d9
+013414: 214645	   lac isspace.c
+013415: 554631	   sad d9
 013416: 613421	   jmp 1f
 013417: 750000	   cla
 013420: 613422	   jmp 2f
 013421: 210267	1: lac .d1
 013422: 741200	   sna
 013423: 613426	   jmp LL293
-013424: 214626	   lac d1
+013424: 214620	   lac d1
 013425: 633401	   jmp isspace i
-013426: 214650	   lac isspace.c
-013427: 554631	   sad d10
+013426: 214645	   lac isspace.c
+013427: 554610	   sad d10
 013430: 613433	   jmp 1f
 013431: 750000	   cla
 013432: 613434	   jmp 2f
 013433: 210267	1: lac .d1
 013434: 741200	   sna
 013435: 613440	   jmp LL296
-013436: 214626	   lac d1
+013436: 214620	   lac d1
 013437: 633401	   jmp isspace i
-013440: 214620	   lac d0
+013440: 214604	   lac d0
 013441: 633401	   jmp isspace i
 013442: 000000	isalnum: 0
-013443: 214705	   lac isalnum.c
+013443: 214660	   lac isalnum.c
 013444: 740001	   cma
-013445: 354612	   tad d65
+013445: 354617	   tad d65
 013446: 740001	   cma
 013447: 741100	   spa
 013450: 613454	   jmp 1f
@@ -1773,9 +1773,9 @@
 013454: 750000	1: cla
 013455: 741200	   sna
 013456: 613475	   jmp LL299
-013457: 214630	   lac d90
+013457: 214603	   lac d90
 013460: 740001	   cma
-013461: 354705	   tad isalnum.c
+013461: 354660	   tad isalnum.c
 013462: 740001	   cma
 013463: 741100	   spa
 013464: 613470	   jmp 1f
@@ -1785,11 +1785,11 @@
 013470: 750000	1: cla
 013471: 741200	   sna
 013472: 613475	   jmp LL301
-013473: 214626	   lac d1
+013473: 214620	   lac d1
 013474: 633442	   jmp isalnum i
-013475: 214705	   lac isalnum.c
+013475: 214660	   lac isalnum.c
 013476: 740001	   cma
-013477: 354613	   tad d97
+013477: 354622	   tad d97
 013500: 740001	   cma
 013501: 741100	   spa
 013502: 613506	   jmp 1f
@@ -1799,9 +1799,9 @@
 013506: 750000	1: cla
 013507: 741200	   sna
 013510: 613527	   jmp LL303
-013511: 214611	   lac d122
+013511: 214625	   lac d122
 013512: 740001	   cma
-013513: 354705	   tad isalnum.c
+013513: 354660	   tad isalnum.c
 013514: 740001	   cma
 013515: 741100	   spa
 013516: 613522	   jmp 1f
@@ -1811,11 +1811,11 @@
 013522: 750000	1: cla
 013523: 741200	   sna
 013524: 613527	   jmp LL305
-013525: 214626	   lac d1
+013525: 214620	   lac d1
 013526: 633442	   jmp isalnum i
-013527: 214705	   lac isalnum.c
+013527: 214660	   lac isalnum.c
 013530: 740001	   cma
-013531: 354604	   tad d48
+013531: 354614	   tad d48
 013532: 740001	   cma
 013533: 741100	   spa
 013534: 613540	   jmp 1f
@@ -1825,9 +1825,9 @@
 013540: 750000	1: cla
 013541: 741200	   sna
 013542: 613561	   jmp LL307
-013543: 214606	   lac d57
+013543: 214611	   lac d57
 013544: 740001	   cma
-013545: 354705	   tad isalnum.c
+013545: 354660	   tad isalnum.c
 013546: 740001	   cma
 013547: 741100	   spa
 013550: 613554	   jmp 1f
@@ -1837,14 +1837,14 @@
 013554: 750000	1: cla
 013555: 741200	   sna
 013556: 613561	   jmp LL309
-013557: 214626	   lac d1
+013557: 214620	   lac d1
 013560: 633442	   jmp isalnum i
-013561: 214620	   lac d0
+013561: 214604	   lac d0
 013562: 633442	   jmp isalnum i
 013563: 000000	isdigit: 0
-013564: 214701	   lac isdigit.c
+013564: 214667	   lac isdigit.c
 013565: 740001	   cma
-013566: 354604	   tad d48
+013566: 354614	   tad d48
 013567: 740001	   cma
 013570: 741100	   spa
 013571: 613575	   jmp 1f
@@ -1854,9 +1854,9 @@
 013575: 750000	1: cla
 013576: 741200	   sna
 013577: 613616	   jmp LL311
-013600: 214606	   lac d57
+013600: 214611	   lac d57
 013601: 740001	   cma
-013602: 354701	   tad isdigit.c
+013602: 354667	   tad isdigit.c
 013603: 740001	   cma
 013604: 741100	   spa
 013605: 613611	   jmp 1f
@@ -1866,14 +1866,14 @@
 013611: 750000	1: cla
 013612: 741200	   sna
 013613: 613616	   jmp LL313
-013614: 214626	   lac d1
+013614: 214620	   lac d1
 013615: 633563	   jmp isdigit i
-013616: 214620	   lac d0
+013616: 214604	   lac d0
 013617: 633563	   jmp isdigit i
 013620: 000000	islegal: 0
-013621: 214651	   lac islegal.c
+013621: 214666	   lac islegal.c
 013622: 740001	   cma
-013623: 354610	   tad d32
+013623: 354613	   tad d32
 013624: 740001	   cma
 013625: 741100	   spa
 013626: 613632	   jmp 1f
@@ -1883,9 +1883,9 @@
 013632: 750000	1: cla
 013633: 741200	   sna
 013634: 613653	   jmp LL315
-013635: 214614	   lac d126
+013635: 214626	   lac d126
 013636: 740001	   cma
-013637: 354651	   tad islegal.c
+013637: 354666	   tad islegal.c
 013640: 740001	   cma
 013641: 741100	   spa
 013642: 613646	   jmp 1f
@@ -1895,113 +1895,113 @@
 013646: 750000	1: cla
 013647: 741200	   sna
 013650: 613653	   jmp LL317
-013651: 214626	   lac d1
+013651: 214620	   lac d1
 013652: 633620	   jmp islegal i
-013653: 214651	   lac islegal.c
-013654: 554610	   sad d32
+013653: 214666	   lac islegal.c
+013654: 554613	   sad d32
 013655: 613660	   jmp 1f
 013656: 750000	   cla
 013657: 613661	   jmp 2f
 013660: 210267	1: lac .d1
 013661: 741200	   sna
 013662: 613665	   jmp LL319
-013663: 214626	   lac d1
+013663: 214620	   lac d1
 013664: 633620	   jmp islegal i
-013665: 214651	   lac islegal.c
-013666: 554623	   sad d9
+013665: 214666	   lac islegal.c
+013666: 554631	   sad d9
 013667: 613672	   jmp 1f
 013670: 750000	   cla
 013671: 613673	   jmp 2f
 013672: 210267	1: lac .d1
 013673: 741200	   sna
 013674: 613677	   jmp LL322
-013675: 214626	   lac d1
+013675: 214620	   lac d1
 013676: 633620	   jmp islegal i
-013677: 214651	   lac islegal.c
-013700: 554631	   sad d10
+013677: 214666	   lac islegal.c
+013700: 554610	   sad d10
 013701: 613704	   jmp 1f
 013702: 750000	   cla
 013703: 613705	   jmp 2f
 013704: 210267	1: lac .d1
 013705: 741200	   sna
 013706: 613711	   jmp LL325
-013707: 214626	   lac d1
+013707: 214620	   lac d1
 013710: 633620	   jmp islegal i
-013711: 214651	   lac islegal.c
-013712: 554617	   sad d4
+013711: 214666	   lac islegal.c
+013712: 554630	   sad d4
 013713: 613716	   jmp 1f
 013714: 750000	   cla
 013715: 613717	   jmp 2f
 013716: 210267	1: lac .d1
 013717: 741200	   sna
 013720: 613723	   jmp LL328
-013721: 214626	   lac d1
+013721: 214620	   lac d1
 013722: 633620	   jmp islegal i
-013723: 214620	   lac d0
+013723: 214604	   lac d0
 013724: 633620	   jmp islegal i
 013725: 000000	itoa: 0
 013726: 214053	   lac tempbuf
-013727: 354623	   tad d9
-013730: 054646	   dac itoa.digitptr
-013731: 174646	   dzm itoa.digitptr i
+013727: 354631	   tad d9
+013730: 054633	   dac itoa.digitptr
+013731: 174633	   dzm itoa.digitptr i
 013732: 777777	   -1 ; tad itoa.digitptr
-013733: 354646	
-013734: 054646	   dac itoa.digitptr
-013735: 214620	   lac d0
+013733: 354633	
+013734: 054633	   dac itoa.digitptr
+013735: 214604	   lac d0
 013736: 740001	   cma
-013737: 354647	   tad itoa.n
+013737: 354632	   tad itoa.n
 013740: 740001	   cma
 013741: 740100	   sma
 013742: 750000	   cla
 013743: 741200	   sna
 013744: 613771	   jmp LL332
-013745: 214631	   lac d10
+013745: 214610	   lac d10
 013746: 053752	   dac .+4
-013747: 214647	   lac itoa.n
+013747: 214632	   lac itoa.n
 013750: 744000	   cll; idiv; ..
 013751: 653323	
 013752: 010000	
-013753: 354604	   tad d48
-013754: 074646	   dac itoa.digitptr i
+013753: 354614	   tad d48
+013754: 074633	   dac itoa.digitptr i
 013755: 777777	   -1 ; tad itoa.digitptr
-013756: 354646	
-013757: 054646	   dac itoa.digitptr
-013760: 214631	   lac d10
+013756: 354633	
+013757: 054633	   dac itoa.digitptr
+013760: 214610	   lac d10
 013761: 053765	   dac .+4
-013762: 214647	   lac itoa.n
+013762: 214632	   lac itoa.n
 013763: 744000	   cll; idiv; ..; lacq
 013764: 653323	
 013765: 010000	
 013766: 641002	
-013767: 054647	   dac itoa.n
+013767: 054632	   dac itoa.n
 013770: 613735	   jmp LL331
-013771: 214646	   lac itoa.digitptr
-013772: 354626	   tad d1
+013771: 214633	   lac itoa.digitptr
+013772: 354620	   tad d1
 013773: 633725	   jmp itoa i
 013774: 000000	strcpy: 0
-013775: 234634	   lac strcpy.src i
+013775: 234664	   lac strcpy.src i
 013776: 741200	   sna
 013777: 614007	   jmp LL334
-014000: 234634	   lac strcpy.src i
-014001: 074633	   dac strcpy.dst i
-014002: 454633	   isz strcpy.dst
+014000: 234664	   lac strcpy.src i
+014001: 074665	   dac strcpy.dst i
+014002: 454665	   isz strcpy.dst
 014003: 740000	   nop
-014004: 454634	   isz strcpy.src
+014004: 454664	   isz strcpy.src
 014005: 740000	   nop
 014006: 613775	   jmp LL333
-014007: 174633	   dzm strcpy.dst i
+014007: 174665	   dzm strcpy.dst i
 014010: 633774	   jmp strcpy i
 014011: 000000	strlen: 0
-014012: 154644	   dzm strlen.n
-014013: 234643	   lac strlen.s i
+014012: 154676	   dzm strlen.n
+014013: 234675	   lac strlen.s i
 014014: 741200	   sna
 014015: 614023	   jmp LL336
-014016: 454643	   isz strlen.s
+014016: 454675	   isz strlen.s
 014017: 740000	   nop
-014020: 454644	   isz strlen.n
+014020: 454676	   isz strlen.n
 014021: 740000	   nop
 014022: 614013	   jmp LL335
-014023: 214644	   lac strlen.n
+014023: 214676	   lac strlen.n
 014024: 634011	   jmp strlen i
 014025: 000000	   0
 014026: 000000	   0
@@ -2369,70 +2369,70 @@
 014600: 000000	   0
 014601: 000000	   0
 014602: 000000	   0
-014603: 164141	d59489: 59489
-014604: 000060	d48: 48
+014603: 000132	d90: 90
+014604: 000000	d0: 0
 014605: 000010	d8: 8
-014606: 000071	d57: 57
-014607: 000056	d46: 46
-014610: 000040	d32: 32
-014611: 000172	d122: 122
-014612: 000101	d65: 65
-014613: 000141	d97: 97
-014614: 000176	d126: 126
-014615: 165154	d60012: 60012
-014616: 777777	m1: -1
-014617: 000004	d4: 4
-014620: 000000	d0: 0
-014621: 000137	d95: 95
-014622: 000045	d37: 37
-014623: 000011	d9: 9
-014624: 157150	d56936: 56936
-014625: 163160	d58992: 58992
-014626: 000001	d1: 1
-014627: 000002	d2: 2
-014630: 000132	d90: 90
-014631: 000012	d10: 10
-014632: 000000	bumpword.x: 0
-014633: 000000	strcpy.dst: 0
-014634: 000000	strcpy.src: 0
-014635: 000000	readline.doingword: 0
-014636: 000000	readline.startline: 0
-014637: 000000	titlen.q: 0
-014640: 000000	titlen.t: 0
-014641: 000000	titlen.c: 0
-014642: 000000	titlen.k: 0
-014643: 000000	strlen.s: 0
-014644: 000000	strlen.n: 0
-014645: 000000	endpage.i: 0
-014646: 000000	itoa.digitptr: 0
-014647: 000000	itoa.n: 0
-014650: 000000	isspace.c: 0
-014651: 000000	islegal.c: 0
-014652: 000000	spit.ulflag: 0
-014653: 000000	spit.c: 0
-014654: 000000	spit.t: 0
-014655: 000000	writeline.adflag: 0
-014656: 000000	writeline.j: 0
-014657: 000000	writeline.flushflag: 0
-014660: 000000	writeline.q: 0
-014661: 000000	writetitle.m: 0
-014662: 000000	writetitle.t: 0
-014663: 000000	writetitle.j: 0
-014664: 000000	writetitle.d: 0
-014665: 000000	writetitle.pst: 0
-014666: 000000	writetitle.pstlen: 0
-014667: 000000	writetitle.l: 0
-014670: 000000	writetitle.n: 0
-014671: 000000	do_ta.v: 0
-014672: 000000	beginpage.i: 0
-014673: 000000	readreq.r: 0
-014674: 000000	pgform.pst: 0
-014675: 000000	tread.leadbl: 0
-014676: 000000	tread.s: 0
-014677: 000000	nread.f: 0
-014700: 000000	nread.i: 0
-014701: 000000	isdigit.c: 0
-014702: 000000	spits.s: 0
-014703: 000000	writebreak.q: 0
-014704: 000000	tabulate.j: 0
-014705: 000000	isalnum.c: 0
+014606: 000137	d95: 95
+014607: 165154	d60012: 60012
+014610: 000012	d10: 10
+014611: 000071	d57: 57
+014612: 163160	d58992: 58992
+014613: 000040	d32: 32
+014614: 000060	d48: 48
+014615: 000045	d37: 37
+014616: 157150	d56936: 56936
+014617: 000101	d65: 65
+014620: 000001	d1: 1
+014621: 777777	m1: -1
+014622: 000141	d97: 97
+014623: 000056	d46: 46
+014624: 000002	d2: 2
+014625: 000172	d122: 122
+014626: 000176	d126: 126
+014627: 164141	d59489: 59489
+014630: 000004	d4: 4
+014631: 000011	d9: 9
+014632: 000000	itoa.n: 0
+014633: 000000	itoa.digitptr: 0
+014634: 000000	writebreak.q: 0
+014635: 000000	spits.s: 0
+014636: 000000	do_ta.v: 0
+014637: 000000	tabulate.j: 0
+014640: 000000	titlen.q: 0
+014641: 000000	titlen.k: 0
+014642: 000000	titlen.t: 0
+014643: 000000	titlen.c: 0
+014644: 000000	bumpword.x: 0
+014645: 000000	isspace.c: 0
+014646: 000000	readreq.r: 0
+014647: 000000	beginpage.i: 0
+014650: 000000	writetitle.m: 0
+014651: 000000	writetitle.t: 0
+014652: 000000	writetitle.pstlen: 0
+014653: 000000	writetitle.n: 0
+014654: 000000	writetitle.d: 0
+014655: 000000	writetitle.l: 0
+014656: 000000	writetitle.j: 0
+014657: 000000	writetitle.pst: 0
+014660: 000000	isalnum.c: 0
+014661: 000000	spit.t: 0
+014662: 000000	spit.c: 0
+014663: 000000	spit.ulflag: 0
+014664: 000000	strcpy.src: 0
+014665: 000000	strcpy.dst: 0
+014666: 000000	islegal.c: 0
+014667: 000000	isdigit.c: 0
+014670: 000000	nread.i: 0
+014671: 000000	nread.f: 0
+014672: 000000	readline.doingword: 0
+014673: 000000	readline.startline: 0
+014674: 000000	endpage.i: 0
+014675: 000000	strlen.s: 0
+014676: 000000	strlen.n: 0
+014677: 000000	writeline.adflag: 0
+014700: 000000	writeline.q: 0
+014701: 000000	writeline.flushflag: 0
+014702: 000000	writeline.j: 0
+014703: 000000	pgform.pst: 0
+014704: 000000	tread.s: 0
+014705: 000000	tread.leadbl: 0
