@@ -352,23 +352,37 @@ global_declarations:
     | global_declaration global_declarations 
 ;
 global_declaration:
-      type_declarator.d ';'
+      type_specifier global_declaration_list ';'
+    | type_specifier function_definition 
+;
+global_declaration_list:
+      global_id_declaration
+    | global_id_declaration ',' global_declaration_list
+;
+global_id_declaration:
+      ptr_identifier.d
 	{ new_globalid($d,'',[0]); }
-    | type_declarator.d '=' CONSTANT.c ';'
+    | ptr_identifier.d '=' CONSTANT.c
 	{ new_globalid($d, '',[$c]); }
     | array_declaration
-    | function_definition 
 ;
 local_declaration:
-      type_declarator.p ';'
+      type_specifier local_declaration_list ';'
+;
+local_declaration_list:
+      local_id_declaration
+    | local_id_declaration ',' local_declaration_list
+;
+local_id_declaration:
+      ptr_identifier.p
 	{ new_localid($Last_functionid, $p); }
-    | type_declarator.p '=' bit_expression.e ';' 
+    | ptr_identifier.p '=' bit_expression.e
 	{ new_localid($Last_functionid, $p);
 	  lac($e); dac([$p,'']);
 	}
 ;
 array_declaration:
-      type_declarator.d '[' CONSTANT.c ']' ';'
+      ptr_identifier.d '[' CONSTANT.c ']'
         {
           # Build a list of zero values
           my @zlist;
@@ -377,9 +391,9 @@ array_declaration:
           }
           new_globalid($d, 'array', \@zlist);
         }
-    | type_declarator.d '[' ']' '=' '{' constant_list.l '}' ';'
+    | ptr_identifier.d '[' ']' '=' '{' constant_list.l '}'
 	{ new_globalid($d, 'array', $l); }
-    | type_declarator.d '[' ']' '=' STRINGLITERAL.s ';' 
+    | ptr_identifier.d '[' ']' '=' STRINGLITERAL.s
         {
           add_strliteral($s, $d);
           new_globalid($d, 'array', undef);
@@ -395,10 +409,10 @@ constant_list:
           push(@$l, $c); $l;
 	}
 ;
-type_declarator:
-      type_specifier pointer IDENTIFIER.i
+ptr_identifier:
+      IDENTIFIER.i
 	{ $i; }
-    | type_specifier IDENTIFIER.i
+    | pointer IDENTIFIER.i
 	{ $i; }
 ;
 type_specifier:
@@ -419,9 +433,9 @@ function_definition:
 	{ push(@$Line, ['jmp', "$Last_functionid i"]); }
 ;
 function_declarator:
-      type_declarator.f '(' ')'
+      ptr_identifier.f '(' ')'
 	{ new_functionid($f,'proto'); }
-    | type_declarator.f '('
+    | ptr_identifier.f '('
 	{ new_functionid($f,'proto'); }
       parameter_list ')'
 ;
@@ -430,7 +444,7 @@ parameter_list:
     | parameter_list ',' parameter_declaration
 ;
 parameter_declaration:
-      type_declarator.p 
+      type_specifier ptr_identifier.p 
 	{ new_localid($Last_functionid, $p); }
 ;
 function_expression:
