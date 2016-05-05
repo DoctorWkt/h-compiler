@@ -46,9 +46,13 @@ readline: 0
    jms suck
    dac c
    sad d10
-   jmp LL7
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL5
-LL7:
    lac d1
    dac o_sp
    jms writebreak
@@ -71,9 +75,13 @@ LL10:
    jmp LL11
    lac c
    sad d4
-   jmp LL14
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL12
-LL14:
    lac readline.doingword
    sna
    jmp LL15
@@ -89,15 +97,23 @@ LL12:
    jmp LL17
    lac readline.doingword
    sad d0
-   jmp LL21
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL19
-LL21:
    dzm readline.startline
    lac c
    sad d32
-   jmp LL24
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL22
-LL24:
    lac d32
    dac .temp1
    lac assyline
@@ -110,17 +126,25 @@ LL24:
 LL22:
    lac c
    sad d9
-   jmp LL27
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL25
-LL27:
    jms tabulate
    dac .temp1
 LL25:
    lac c
    sad d10
-   jmp LL30
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL28
-LL30:
    jmp out
 LL28:
    jms suck
@@ -140,9 +164,13 @@ LL17:
    dac .temp1
    lac c
    sad d9
-   jmp LL37
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL35
-LL37:
    jms tabulate
    dac .temp1
    jmp LL36
@@ -164,9 +192,13 @@ LL36:
    dzm readline.doingword
    lac c
    sad d10
-   jmp LL42
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL40
-LL42:
    jmp LL11
 LL40:
 LL33:
@@ -175,9 +207,13 @@ LL31:
    dac isspace.c
    jms isspace
    sad d0
-   jmp LL45
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL43
-LL45:
    lac readline.doingword
    sna
    jmp LL46
@@ -203,9 +239,13 @@ LL46:
    jmp LL50
    lac c
    sad o_cc
-   jmp LL54
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL52
-LL54:
    lac d1
    dac isrequest
    jms readreq
@@ -247,6 +287,12 @@ out:
 LL57:
    lac c
    sad d4
+   jmp 1f
+   lac .d1
+   jmp 2f
+1: cla
+2:
+   sna
    jmp LL59
    lac d1
    jmp readline i
@@ -271,6 +317,8 @@ bumpword: 0
    tad .temp1
    cma
    sma
+   cla
+   sna
    jmp LL61
    lac o_ad
    dac writeline.adflag
@@ -304,6 +352,8 @@ LL63:
    tad n_ta
    cma
    sma
+   cla
+   sna
    jmp LL64
    lac o_ta
    tad tabulate.j
@@ -319,6 +369,8 @@ LL63:
    tad .temp1
    cma
    sma
+   cla
+   sna
    jmp LL65
 LL67:
    lac assylen
@@ -337,6 +389,8 @@ LL67:
    tad .temp2
    cma
    sma
+   cla
+   sna
    jmp LL68
    lac o_tc
    dac .temp2
@@ -374,23 +428,35 @@ LL69:
    jms suck
    dac c
    sad d4
-   jmp LL73
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL71
-LL73:
    jmp readend
 LL71:
    lac c
    sad d10
-   jmp LL76
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL74
-LL76:
    jmp readend
 LL74:
    lac c
    sad d46
-   jmp LL79
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL77
-LL79:
 LL80:
    lac d1
    sna
@@ -398,16 +464,24 @@ LL80:
    jms suck
    dac c
    sad d4
-   jmp LL84
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL82
-LL84:
    jmp LL81
 LL82:
    lac c
    sad d10
-   jmp LL87
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL85
-LL87:
    jmp LL81
 LL85:
    jmp LL80
@@ -420,9 +494,23 @@ LL77:
    jms suck
    dac c
    sad d4
+   jmp 1f
+   lac .d1
+   jmp 2f
+1: cla
+2:
+   sna
    jmp LL88
+   lac c
    sad d10
+   jmp 1f
+   lac .d1
+   jmp 2f
+1: cla
+2:
+   sna
    jmp LL90
+   lac c
    lmq
    lac readreq.r
    omq
@@ -431,9 +519,13 @@ LL90:
 LL88:
    lac readreq.r
    sad d56936
-   jmp LL94
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL92
-LL94:
    lac ohead
    dac tread.s
    jms tread
@@ -441,9 +533,13 @@ LL94:
 LL92:
    lac readreq.r
    sad d58992
-   jmp LL97
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL95
-LL97:
    jms nread
    dac o_sp
    jms writebreak
@@ -451,17 +547,25 @@ LL97:
 LL95:
    lac readreq.r
    sad d59489
-   jmp LL100
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL98
-LL100:
    jms do_ta
    dac .temp1
 LL98:
    lac readreq.r
    sad d60012
-   jmp LL103
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL101
-LL103:
    jms nread
    dac o_ul
 LL101:
@@ -471,16 +575,24 @@ LL104:
    jmp LL105
    lac c
    sad d4
-   jmp LL108
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL106
-LL108:
    jmp LL105
 LL106:
    lac c
    sad d10
-   jmp LL111
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL109
-LL111:
    jmp LL105
 LL109:
    jms suck
@@ -490,6 +602,12 @@ LL105:
 readend:
    lac c
    sad d4
+   jmp 1f
+   lac .d1
+   jmp 2f
+1: cla
+2:
+   sna
    jmp LL112
    lac d1
    jmp readreq i
@@ -508,31 +626,47 @@ LL114:
    jms suck
    dac c
    sad d32
-   jmp LL118
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL116
-LL118:
    lac tread.leadbl
    sad d0
-   jmp LL121
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL119
-LL121:
    jmp LL114
 LL119:
 LL116:
    lac c
    sad d4
-   jmp LL124
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL122
-LL124:
    dzm tread.s i
    lac c
    jmp tread i
 LL122:
    lac c
    sad d10
-   jmp LL127
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL125
-LL127:
    dzm tread.s i
    lac c
    jmp tread i
@@ -551,9 +685,13 @@ nread: 0
    dzm nread.f
    jms skipsp
    sad d0
-   jmp LL130
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL128
-LL130:
 LL131:
    lac d1
    sna
@@ -561,9 +699,13 @@ LL131:
    jms suck
    dac c
    sad d4
-   jmp LL135
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL133
-LL135:
    jmp LL132
 LL133:
    lac c
@@ -598,9 +740,13 @@ LL132:
 LL128:
    lac nread.f
    sad d0
-   jmp LL142
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL140
-LL142:
    lac d1
    dac nread.i
 LL140:
@@ -617,9 +763,13 @@ LL143:
    jms nread
    dac do_ta.v
    sad d1
-   jmp LL147
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL145
-LL147:
    jmp do_ta i
    jmp LL146
 LL145:
@@ -635,16 +785,24 @@ LL145:
 LL146:
    lac c
    sad d10
-   jmp LL150
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL148
-LL150:
    jmp LL144
 LL148:
    lac c
    sad d4
-   jmp LL153
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL151
-LL153:
    jmp LL144
 LL151:
    jmp LL143
@@ -658,32 +816,48 @@ LL154:
    jms suck
    dac c
    sad d4
-   jmp LL158
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL156
-LL158:
    lac d1
    jmp skipsp i
 LL156:
    lac c
    sad d10
-   jmp LL161
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL159
-LL161:
    lac d1
    jmp skipsp i
 LL159:
    lac c
    sad d32
-   jmp LL164
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL162
-LL164:
    jmp LL154
 LL162:
    lac c
    sad d9
-   jmp LL167
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL165
-LL167:
    jmp LL154
 LL165:
    lac c
@@ -716,6 +890,8 @@ LL168:
    tad .temp1
    cma
    sma
+   cla
+   sna
    jmp LL172
    jms newpage
    dac .temp1
@@ -744,6 +920,13 @@ blankline: 0
    tad TXTLEN
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL178
    jms newpage
    dac .temp1
@@ -770,9 +953,13 @@ LL180:
    dac .ptr
    lac .ptr i
    sad d32
-   jmp LL184
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL182
-LL184:
    -1 ; tad assylen 
    dac assylen 
    jmp LL183
@@ -790,6 +977,13 @@ LL181:
    tad writeline.q
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL185
    jms newpage
    dac .temp1
@@ -801,6 +995,8 @@ LL187:
    tad assylen
    cma
    sma
+   cla
+   sna
    jmp LL188
    lac assyline
    tad writeline.j
@@ -827,9 +1023,13 @@ LL188:
    nop
    lac writeline.flushflag
    sad d0
-   jmp LL191
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL189
-LL191:
    lac assyline
    dac strcpy.dst
    lac holdword
@@ -848,6 +1048,13 @@ LL189:
 newpage: 0
    lac page_no
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL192
    jms endpage
    dac .temp1
@@ -867,6 +1074,8 @@ LL194:
    tad o_m1
    cma
    sma
+   cla
+   sna
    jmp LL195
    lac d10
    dac spit.c
@@ -887,6 +1096,8 @@ LL196:
    tad o_m2
    cma
    sma
+   cla
+   sna
    jmp LL197
    lac d10
    dac spit.c
@@ -907,6 +1118,8 @@ LL198:
    tad TXTLEN
    cma
    sma
+   cla
+   sna
    jmp LL199
    lac d10
    dac spit.c
@@ -925,6 +1138,8 @@ LL200:
    tad o_m3
    cma
    sma
+   cla
+   sna
    jmp LL201
    lac d10
    dac spit.c
@@ -945,6 +1160,8 @@ LL202:
    tad o_m4
    cma
    sma
+   cla
+   sna
    jmp LL203
    lac d10
    dac spit.c
@@ -961,9 +1178,13 @@ writetitle: 0
    lac writetitle.t i
    dac writetitle.d
    sad d0
-   jmp LL206
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL204
-LL206:
    lac d10
    dac spit.c
    jms spit
@@ -991,23 +1212,35 @@ LL207:
    jmp LL208
    lac writetitle.t i
    sad d0
-   jmp LL211
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL209
-LL211:
    jmp LL208
 LL209:
    lac writetitle.t i
    sad writetitle.d
-   jmp LL214
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL212
-LL214:
    jmp LL208
 LL212:
    lac writetitle.t i
    sad d37
-   jmp LL217
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL215
-LL217:
    lac writetitle.pst
    dac spits.s
    jms spits
@@ -1025,9 +1258,13 @@ LL216:
 LL208:
    lac writetitle.t i
    sad d0
-   jmp LL220
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL218
-LL220:
    lac d10
    dac spit.c
    jms spit
@@ -1062,6 +1299,8 @@ LL221:
    tad .temp1
    cma
    sma
+   cla
+   sna
    jmp LL222
    lac d32
    dac spit.c
@@ -1077,23 +1316,35 @@ LL223:
    jmp LL224
    lac writetitle.t i
    sad d0
-   jmp LL227
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL225
-LL227:
    jmp LL224
 LL225:
    lac writetitle.t i
    sad writetitle.d
-   jmp LL230
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL228
-LL230:
    jmp LL224
 LL228:
    lac writetitle.t i
    sad d37
-   jmp LL233
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL231
-LL233:
    lac writetitle.pst
    dac spits.s
    jms spits
@@ -1111,9 +1362,13 @@ LL232:
 LL224:
    lac writetitle.t i
    sad d0
-   jmp LL236
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL234
-LL236:
    lac d10
    dac spit.c
    jms spit
@@ -1135,6 +1390,8 @@ LL234:
    tad .temp2
    cma
    sma
+   cla
+   sna
    jmp LL237
    lac o_ll
    cma
@@ -1178,6 +1435,8 @@ LL239:
    tad .temp1
    cma
    sma
+   cla
+   sna
    jmp LL240
    lac d32
    dac spit.c
@@ -1193,23 +1452,35 @@ LL241:
    jmp LL242
    lac writetitle.t i
    sad d0
-   jmp LL245
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL243
-LL245:
    jmp LL242
 LL243:
    lac writetitle.t i
    sad writetitle.d
-   jmp LL248
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL246
-LL248:
    jmp LL242
 LL246:
    lac writetitle.t i
    sad d37
-   jmp LL251
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL249
-LL251:
    lac writetitle.pst
    dac spits.s
    jms spits
@@ -1244,23 +1515,35 @@ LL252:
    jmp LL253
    lac titlen.t i
    sad d0
-   jmp LL256
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL254
-LL256:
    jmp LL253
 LL254:
    lac titlen.t i
    sad titlen.c
-   jmp LL259
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL257
-LL259:
    jmp LL253
 LL257:
    lac titlen.t i
    sad d37
-   jmp LL262
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL260
-LL262:
    lac titlen.q
    tad titlen.k
    dac titlen.q
@@ -1300,8 +1583,21 @@ spit: 0
    and .temp1
    dac spit.c
    sad d32
+   jmp 1f
+   lac .d1
+   jmp 2f
+1: cla
+2:
+   sna
    jmp LL265
+   lac spit.c
    sad d10
+   jmp 1f
+   lac .d1
+   jmp 2f
+1: cla
+2:
+   sna
    jmp LL267
    lac n_blanks
    sna
@@ -1343,9 +1639,13 @@ LL275:
 LL273:
    lac spit.c
    sad d32
-   jmp LL279
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL277
-LL279:
    isz n_blanks
    nop
    jmp LL278
@@ -1359,9 +1659,13 @@ LL277:
 LL278:
    lac spit.c
    sad d10
-   jmp LL282
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL280
-LL282:
    dzm col_no
    dzm n_blanks
 LL280:
@@ -1376,9 +1680,13 @@ LL283:
    dzm cachec
    lac c
    sad d0
-   jmp LL287
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL285
-LL287:
    jms getchar
    dac c
 LL285:
@@ -1396,25 +1704,37 @@ LL284:
 isspace: 0
    lac isspace.c
    sad d32
-   jmp LL292
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL290
-LL292:
    lac d1
    jmp isspace i
 LL290:
    lac isspace.c
    sad d9
-   jmp LL295
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL293
-LL295:
    lac d1
    jmp isspace i
 LL293:
    lac isspace.c
    sad d10
-   jmp LL298
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL296
-LL298:
    lac d1
    jmp isspace i
 LL296:
@@ -1426,12 +1746,26 @@ isalnum: 0
    tad d65
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL299
    lac d90
    cma
    tad isalnum.c
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL301
    lac d1
    jmp isalnum i
@@ -1442,12 +1776,26 @@ LL299:
    tad d97
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL303
    lac d122
    cma
    tad isalnum.c
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL305
    lac d1
    jmp isalnum i
@@ -1458,12 +1806,26 @@ LL303:
    tad d48
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL307
    lac d57
    cma
    tad isalnum.c
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL309
    lac d1
    jmp isalnum i
@@ -1477,12 +1839,26 @@ isdigit: 0
    tad d48
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL311
    lac d57
    cma
    tad isdigit.c
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL313
    lac d1
    jmp isdigit i
@@ -1496,12 +1872,26 @@ islegal: 0
    tad d32
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL315
    lac d126
    cma
    tad islegal.c
    cma
    spa
+   jmp 1f
+   lac .d1
+   jmp 2f
+   cla
+1: cla
+2:
+   sna
    jmp LL317
    lac d1
    jmp islegal i
@@ -1509,33 +1899,49 @@ LL317:
 LL315:
    lac islegal.c
    sad d32
-   jmp LL321
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL319
-LL321:
    lac d1
    jmp islegal i
 LL319:
    lac islegal.c
    sad d9
-   jmp LL324
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL322
-LL324:
    lac d1
    jmp islegal i
 LL322:
    lac islegal.c
    sad d10
-   jmp LL327
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL325
-LL327:
    lac d1
    jmp islegal i
 LL325:
    lac islegal.c
    sad d4
-   jmp LL330
+   jmp 1f
+   cla
+   jmp 2f
+1: lac .d1
+2:
+   sna
    jmp LL328
-LL330:
    lac d1
    jmp islegal i
 LL328:
@@ -1554,6 +1960,8 @@ LL331:
    tad itoa.n
    cma
    sma
+   cla
+   sna
    jmp LL332
    lac d10
    dac .+4
@@ -2024,72 +2432,70 @@ col_no:
    0
 n_blanks:
    0
-d10: 10
-d56936: 56936
-d97: 97
-d46: 46
+d59489: 59489
+d48: 48
 d8: 8
+d57: 57
+d46: 46
+d32: 32
+d122: 122
+d65: 65
+d97: 97
+d126: 126
+d60012: 60012
+m1: -1
+d4: 4
+d0: 0
+d95: 95
+d37: 37
+d9: 9
+d56936: 56936
+d58992: 58992
 d1: 1
 d2: 2
 d90: 90
-d48: 48
-m1: -1
-d122: 122
-d32: 32
-d60012: 60012
-d4: 4
-d126: 126
-d65: 65
-d9: 9
-d37: 37
-d57: 57
-d58992: 58992
-d0: 0
-d59489: 59489
-d95: 95
-tabulate.j: 0
+d10: 10
+bumpword.x: 0
+strcpy.dst: 0
+strcpy.src: 0
+readline.doingword: 0
+readline.startline: 0
+titlen.q: 0
 titlen.t: 0
 titlen.c: 0
 titlen.k: 0
-titlen.q: 0
-readline.startline: 0
-readline.doingword: 0
-itoa.n: 0
-itoa.digitptr: 0
-nread.i: 0
-nread.f: 0
-tread.s: 0
-tread.leadbl: 0
-spit.c: 0
-spit.ulflag: 0
-spit.t: 0
-pgform.pst: 0
-endpage.i: 0
-islegal.c: 0
-do_ta.v: 0
 strlen.s: 0
 strlen.n: 0
-strcpy.dst: 0
-strcpy.src: 0
-putchar.c: 0
-readreq.r: 0
+endpage.i: 0
+itoa.digitptr: 0
+itoa.n: 0
+isspace.c: 0
+islegal.c: 0
+spit.ulflag: 0
+spit.c: 0
+spit.t: 0
+writeline.adflag: 0
+writeline.j: 0
+writeline.flushflag: 0
+writeline.q: 0
+writetitle.m: 0
 writetitle.t: 0
+writetitle.j: 0
 writetitle.d: 0
 writetitle.pst: 0
-writetitle.j: 0
-writetitle.l: 0
-writetitle.m: 0
-writetitle.n: 0
 writetitle.pstlen: 0
-writebreak.q: 0
+writetitle.l: 0
+writetitle.n: 0
+do_ta.v: 0
 beginpage.i: 0
-isspace.c: 0
-bumpword.x: 0
-spits.s: 0
-writeline.adflag: 0
-writeline.flushflag: 0
-writeline.j: 0
-writeline.q: 0
-printn.n: 0
-isalnum.c: 0
+readreq.r: 0
+pgform.pst: 0
+tread.leadbl: 0
+tread.s: 0
+nread.f: 0
+nread.i: 0
 isdigit.c: 0
+spits.s: 0
+writebreak.q: 0
+tabulate.j: 0
+isalnum.c: 0

@@ -5,7 +5,7 @@
 # (c) Warren Toomey, 2016. GPL3 license.
 #
 %token IDENTIFIER CONSTANT STRINGLITERAL
-%token INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP 
+%token INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP
 %token CHAR INT VOID 
 %token IF ELSE WHILE DO GOTO CONTINUE BREAK RETURN 
 %left WEAK 
@@ -563,14 +563,10 @@ bit_expression:
 	  tempdac();
 	}
 ;
+
+# Save a zero or non-zero result into a temp location
 relational_expression:
-      bit_expression.b
-	{ 
-	  lac($b);
-	  push(@$Line, ['lac', getid($b, 'lac')]);
-	  push(@$Line, ['sna']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
-	}
+      bit_expression
     | bit_expression.lhs '<' bit_expression.rhs
 	{ 
 	  lac($lhs);
@@ -578,7 +574,8 @@ relational_expression:
 	  push(@$Line, ['tad', getid($rhs, 'rhs<') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['cla']);	# Not true, now zero
+	  tempdac();
 	}
     | bit_expression.lhs '>' bit_expression.rhs
 	{ 
@@ -587,7 +584,8 @@ relational_expression:
 	  push(@$Line, ['tad', getid($lhs, 'lhs>')]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['sma']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['cla']);	# Not true, now zero
+	  tempdac();
 	}
     | bit_expression.lhs LE_OP bit_expression.rhs
 	{ 
@@ -596,7 +594,13 @@ relational_expression:
 	  push(@$Line, ['tad', getid($lhs, 'lhs<=') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['lac', '.d1']);	# True, now one
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['cla']);	# Not true, now zero
+          push(@$Line, ['1: cla']);
+          push(@$Line, ['2:']);
+	  tempdac();
 	}
     | bit_expression.lhs GE_OP bit_expression.rhs
 	{ 
@@ -605,21 +609,62 @@ relational_expression:
 	  push(@$Line, ['tad', getid($rhs, 'rhs>=') ]);
 	  push(@$Line, ['cma']);
 	  push(@$Line, ['spa']);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['lac', '.d1']);	# True, now one
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['cla']);	# Not true, now zero
+          push(@$Line, ['1: cla']);
+          push(@$Line, ['2:']);
+	  tempdac();
 	}
     | bit_expression.lhs EQ_OP bit_expression.rhs
 	{
 	  my $third= new_label();
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs==') ]);
-          push(@$Line, ['jmp', $third]);
-          push(@$Line, ['jmp', $lifref->[-1]->[0]]);
-          push(@$Line, ["$third:"]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['cla']);	# Not true, now zero
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['1: lac', '.d1']);	# True, now one
+          push(@$Line, ['2:']);
+	  tempdac();
 	}
     | bit_expression.lhs NE_OP bit_expression.rhs
 	{ 
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs!=') ]);
+          push(@$Line, ['jmp', '1f']);
+          push(@$Line, ['lac', '.d1']);	# True, now one
+          push(@$Line, ['jmp', '2f']);
+          push(@$Line, ['1: cla']);	# Not true, now zero
+          push(@$Line, ['2:']);
+	  tempdac();
+	}
+;
+logical_expression:
+      relational_expression
+    | relational_expression.lhs AND_OP logical_expression.rhs
+	{ 
+	  lac($lhs);
+  	  push(@$Line, ['and', getid($rhs, 'rhsand') ]);
+	  tempdac();
+	}
+    | relational_expression.lhs OR_OP logical_expression.rhs
+	{ 
+	  lac($rhs);
+  	  push(@$Line, ['lmq']);
+	  lac($lhs);
+  	  push(@$Line, ['omq']);
+	  tempdac();
+	}
+;
+
+true_false_expression:
+      logical_expression.b
+	{ 
+	  lac($b);
+	  push(@$Line, ['lac', getid($b, 'lac')]);
+	  push(@$Line, ['sna']);
           push(@$Line, ['jmp', $lifref->[-1]->[0]]);
 	}
 ;
@@ -664,7 +709,7 @@ if_head:
           push(@ifstack, [ $false, $end ]);
 	  $lifref= \@ifstack;
         }
-      '(' relational_expression ')'
+      '(' true_false_expression ')'
 	{ reset_temp_locations(); }
       statement 
 ;
@@ -677,7 +722,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
-      '(' relational_expression ')'
+      '(' true_false_expression ')'
       statement
         { push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
@@ -692,7 +737,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
-      statement WHILE '(' relational_expression ')' ';'
+      statement WHILE '(' true_false_expression ')' ';'
 	{ push(@$Line, ['jmp', $loopstack[-1]->[1]]);
           push(@$Line, ["$loopstack[-1]->[0]:"]);
 	  pop(@loopstack);
@@ -707,7 +752,7 @@ iteration_statement:
 	  $lifref= \@loopstack;
           push(@$Line, ["$start:"]);
         }
-      relational_expression ';'
+      true_false_expression ';'
 	{ # Move all the current lines over to FinalLine
           # and empty $Line for the third statement
           push(@FinalLine, $Line); $Line= [];
@@ -869,6 +914,12 @@ sub _Lexer {
         }
         if (s{^(>>)\s*}{}) {
           push(@TokenQueue,['RIGHT_OP',$1]); next;
+        }
+        if (s{^(\&\&)\s*}{}) {
+          push(@TokenQueue,['AND_OP',$1]); next;
+        }
+        if (s{^(\|\|)\s*}{}) {
+          push(@TokenQueue,['OR_OP',$1]); next;
         }
         if (s{^(\+\+)\s*}{}) {
           push(@TokenQueue,['INC_OP',$1]); next;
