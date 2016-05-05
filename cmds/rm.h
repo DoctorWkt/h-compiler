@@ -10,25 +10,17 @@ void puts(char *c)
 
 void main(int argc, char *argv)
 {
-  int fd;
-  int cnt;
+  int err;
   int a;
   char *file;
 
   for (a=1; a < argc; a++) {
     file= argv[a];
-    fd= open(file, 0);
-    if (fd == -1) {
-      puts("cannot open file\n");
+    err= unlink(file);
+    if (err == -1) {
+      puts("cannot unlink file\n");
       exit();
     }
-      
-    while (1) {
-      cnt= read(fd, buffer, BUFLEN);
-      if (cnt==0) break;
-      write(1, buffer, cnt);
-    }
-    close(fd);
   }
   exit();
 }
