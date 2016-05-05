@@ -15,29 +15,17 @@ init:
    sys exit
 
 .open: 0		" Call the open system call
-   lac open.how
-   dac 2f
-   lac open.buf
-   dac 1f
-   sys open; 1:0; 2:0
+   sys open; open.buf:0; open.how:0
    jmp .open i
 
 .read: 0		" Call the read system call
-   lac read.cnt
-   dac 2f
-   lac read.buf
-   dac 1f
    lac read.fd
-   sys read; 1:0; 2:0
+   sys read; read.buf:0; read.cnt:0
    jmp .read i
 
 .write: 0		" Call the write system call
-   lac write.cnt
-   dac 2f
-   lac write.buf
-   dac 1f
    lac write.fd
-   sys write; 1:0; 2:0
+   sys write; write.buf:0; write.cnt:0
    jmp .write i
 
 .close: 0		" Call the close system call
@@ -53,34 +41,20 @@ init:
    jmp .getuid i
 
 .creat: 0		" Call the creat system call
-   lac creat.buf
-   dac 1f
-   sys creat; 1:0
+   sys creat; creat.buf:0
    jmp .creat i
 
 .seek: 0		" Call the seek system call
-   lac seek.how
-   dac 2f
-   lac seek.offset
-   dac 1f
    lac seek.fd
-   sys seek; 1:0; 2:0
+   sys seek; seek.offset:0; seek.how:0
    jmp .seek i
 
 .link: 0
-   lac link.dir
-   dac 1f
-   lac link.src
-   dac 2f
-   lac link.dst
-   dac 3f
-   sys link; 1:0; 2:0; 3:0
+   sys link; link.dir:0; link.src:0; link.dst:0
    jmp .link i
 
 .unlink: 0
-   lac unlink.buf
-   dac 1f
-   sys unlink; 1:0
+   sys unlink; unlink.buf:0
    jmp .unlink i
 
 .setuid: 0
@@ -89,11 +63,7 @@ init:
    jmp .setuid i
 
 .rename: 0
-   lac rename.old
-   dac 1f
-   lac rename.new
-   dac 2f
-   sys rename; 1:0; 2:0
+   sys rename; rename.old:0; rename.new:0
    jmp .rename i
 
 .time: 0
@@ -102,23 +72,17 @@ init:
    jmp .time i
 
 .chdir: 0
-   lac chdir.old
-   dac 1f
-   sys chdir; 1:0
+   sys chdir; chdir.old:0
    jmp .chdir i
 
 .chmod: 0
-   lac chmod.file
-   dac 1f
    lac chmod.mode
-   sys chmod; 1:0
+   sys chmod; chmod.file:0
    jmp .chmod i
 
 .chown: 0
-   lac chown.file
-   dac 1f
    lac chown.uid
-   sys chown; 1:0
+   sys chown; chown.file:0
    jmp .chown i
 
 .fork: 0
@@ -197,32 +161,14 @@ getchar: 0
 .himem: 017777		" Highest available memory address
 close.fd: 0
 main.argc: 0		" Number of arguments
-open.how: 0
-open.buf: 0
 open.fd: 0
 printn.n: 0
 putchar.c: 0
-read.cnt: 0
-read.buf: 0
 read.fd: 0
-write.cnt: 0
-write.buf: 0
 write.fd: 0
-creat.buf: 0
-seek.how: 0
-seek.offset: 0
 seek.fd: 0
-link.dir: 0
-link.src: 0
-link.dst: 0
-unlink.buf: 0
 setuid.uid: 0
-rename.old: 0
-rename.new: 0
-chdir.old: 0
-chmod.file: 0
 chmod.mode: 0
-chown.file: 0
 chown.uid: 0
 .targv: .+2		" Temporary pointer to argument pointers
 main.argv: .+1		" Pointer to argument pointers
