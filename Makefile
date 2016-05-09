@@ -32,11 +32,17 @@ roff.s: h.pm roff.c
 
 # Build the PDP-7 roff binary
 roff: roff.s
-	./as7 -n -o roff hrt.s roff.s
+	./as7 -o roff hrt.s roff.s
+
+wktroff.s: h.pm wktroff.c
+	./h.pm wktroff.c
+
+wktroff: wktroff.s
+	./as7 -o wktroff hrt.s wktroff.s
 
 # Run the roff binary on sample input
 rtest: roff
 	./a7out roff < tests/cat.1 | less
 
 clean:
-	rm -f h.pm hello.s hello roff.s roff n.out
+	rm -f h.pm hello.s hello roff.s roff n.out wktroff.s wktroff

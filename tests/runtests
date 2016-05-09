@@ -4,7 +4,7 @@ do echo -n $i
    sfile=`echo $i | sed 's/h$/s/'`
    outfile=`echo $i | sed 's/h$/out/'`
    ../h.pm $1 $i
-   ../as7 $sfile ../hrt.s 2> /dev/null
+   ../as7 ../hrt.s $sfile 2> /dev/null
    ../a7out a.out > $$
    cmp -s $outfile $$
    if [ "$?" -eq "1" ]

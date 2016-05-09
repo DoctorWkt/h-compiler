@@ -146,6 +146,7 @@ getchar: 0
 
 .cnt: 0         	" Loop counter for printn
 .d1: .fd1: 1		" Output file descriptor
+.m1: -1
 .fd0: 0			" Input file descriptor
 .char: 0
 .newline: 10		" Used in printn
