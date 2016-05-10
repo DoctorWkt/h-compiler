@@ -192,11 +192,11 @@ sub getid
   if ($ind eq 'array') {
     my ($offid, $offind) = @$offset;
 
-    Die("can't index an array more than once") if ($offind eq 'array');
-    $offset= getid($offset);	# Get the real offset name
-
     # If this isn't a lac, save the current AC
     my $temp= tempdac() if ($how ne 'lac');
+
+    Die("can't index an array more than once") if ($offind eq 'array');
+    $offset= getid($offset);	# Get the real offset name
 
     # Get the pointer to the array element into ptr1
     # and then get back the saved AC
@@ -496,10 +496,16 @@ unary_expression:
 	  tempdac();
         }
     | '!' basic_expression.e
-        {
+        { my $temp= tempdac();
 	  lac($e);
-  	  push(@$Line, ['cma']);
-	  tempdac();
+  	  push(@$Line, ['sza']);
+  	  push(@$Line, ['jmp', '1f']);
+  	  push(@$Line, ['lac', '.d1']);
+  	  push(@$Line, ['dac', $temp->[0]]);
+  	  push(@$Line, ['jmp', '2f']);
+  	  push(@$Line, ['1: dzm', $temp->[0]]);
+  	  push(@$Line, ['2:']);
+	  $temp;
 	}
 ;
 multiplicative_expression:

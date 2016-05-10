@@ -27,22 +27,5 @@ test: h.pm
 otest: h.pm
 	(cd tests; ./runtests)
 
-roff.s: h.pm roff.c
-	./h.pm roff.c
-
-# Build the PDP-7 roff binary
-roff: roff.s
-	./as7 -o roff hrt.s roff.s
-
-wktroff.s: h.pm wktroff.c
-	./h.pm wktroff.c
-
-wktroff: wktroff.s
-	./as7 -o wktroff hrt.s wktroff.s
-
-# Run the roff binary on sample input
-rtest: roff
-	./a7out roff < tests/cat.1 | less
-
 clean:
-	rm -f h.pm hello.s hello roff.s roff n.out wktroff.s wktroff
+	rm -f h.pm hello.s n.out

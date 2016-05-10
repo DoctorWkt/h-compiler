@@ -260,9 +260,7 @@ void text(Char * inbuf, Char * outbuf)
 	// hyphenation character to a '-'.
 	if (len > nextra && hyplen != 0 && hyplen <= nextra) {
 	    len= hyplen;
-	    x= inp + hyplen - 1;	// XXX why not the next line?
-	    *x= '-';
-	    //inp[ hyplen - 1  ]='-';
+	    inp[ hyplen - 1  ]= '-';
 	    hyplen=0;	// It's no longer a hypchar to skip below
 	}
 
@@ -297,7 +295,7 @@ void text(Char * inbuf, Char * outbuf)
     }
 
     // We have reached the end of the input line. Break if no fill
-    if (fill==0)		// XXX ! is not working in H
+    if (!fill)
 	brkline();
 }
 
@@ -314,6 +312,7 @@ void put(Char * buf)
     // Centering is done by setting a temporary indent value
     if (ceval) {
 	i= Strlen(buf);		// XXX Why can't I put this below?
+				// Because the f'n call tromps on temps
 	tival = (rmval + tival - i) / 2;
 	if (tival < 0)
 	    tival = 0;
