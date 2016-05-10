@@ -1,0 +1,210 @@
+.fo 'wktroff'%'May, 2016'
+.ta 8 14 22
+.rm 75
+.ul
+.ce
+.bo
+Introduction to Warren's Roff
+.sp
+This version of
+.ul
+roff
+is based on Doug McIlroy's Ratfor version of
+.ul
+roff
+written for Software Tools,
+with some extensions from the Minix 1.5 version of
+.ul
+roff,
+and with some
+other commands adopted from McIlroy's 1971
+.ul
+roff
+manual for GECOS.
+.sp
+Here are the list of available commands:
+.sp
+.nj
+.nf
+.ul
+command break default meaning
+.li 20
+.bo n	no		embolden characters for n lines
+.bp	yes		begin page
+.br	yes		break the current line
+.ce n	yes		centre the next n lines, break on each
+.fi	yes	yes	fill output lines
+.fo t	no	t=''''	set the footer title to t
+.he t	no	t=''''	set the heading title to t
+.hc c	no		set the hyphenation character to c
+.in n	no	0	indent margin by n spaces
+.ju	no	yes	justify output lines by adding spaces
+.li n	no		literal, treat the next n lines as text
+.ls n	no	1	line spacing is n
+.nf	yes	no	nofill, break on each input line
+.nj	no	no	do not justify output lines
+.pl n	no	66	set the page length to n
+.rm n	no	60	set the right margin to be n characters
+.sp n	yes		insert n extra spacing lines
+.ta	no		set tab stops, see below
+.ti n	yes	0	set a temporary indent for only one line
+.ul n	no		underline non-punctuation for n lines
+.sp
+.ju
+.fi
+By default, each page is .rm (60) characters wide and .pl (66) characters
+long, with an indent of .in (0). Each output line is justified by default;
+this is done by inserting spaces to make the required line length.
+Also, by default, an output line is formed by filling words from one or
+more input lines while the output line is still too short; then it is justified
+and output. Line filling and justification can turned off with .nf and .nj.
+.sp
+Some commands "break" (i.e. flush out) any pending output line and
+this will also stop the line from being justified. The above table
+lists those commands that break or do not break lines.
+.sp
+The page width can be controlled by the .rm command, and the left margin
+can be controlled by the .in command. The .ti command sets the indenting
+for the next output line.
+.sp
+.ti 5
+This line, for example, was produced with .ti 5. Line spacing can be 
+controlled with the .ls command; if you want double-spaced lines, then
+you should issue the .ls 2 command. If you want to output a number of
+blank lines, then you can use the .sp command. If you want to begin an
+entirely new page, then use the .bp command.
+.sp
+.ul
+.bo
+Bold, Underlining and Centering
+.sp
+If you issue the .bo command, then all the characters
+on the following input line will be made bold.
+If you issue the .ul command, then all the non-punctuation characters
+on the following input line will be underlined. You can do both bold
+.hc #
+and underlining at the same time. Both use the back#space character to
+go back one character and overprint it.
+.sp
+The .ce n command will
+centre the following n input lines. These will not be filled and not
+be justified, but they will be centered based on the settings of the
+right marking and the current indent value.
+.sp
+.ul
+.bo
+Headers and Footers
+.sp
+You can set a header and footer which will appear on the first and last
+line on each output page. Here is an example of a header command:
+.sp
+.li
+.he 'Left side'%'Right side'
+.sp
+The header has three sections that are separated by the first non-space
+character following the .he command. The first section is left-justified
+on the page, the middle section is centered and the right section is
+right-justified. Any percent character is replaced by the current page
+number.
+.sp
+.ul
+.bo
+Setting Tab Positions
+.sp
+You can set up to 20 tab positions by using a command like the following:
+.sp
+.li
+.ta 8 16 20 24 28 34 36 50
+.sp
+This sets tab positions at absolute column positions 8, 16, 20 etc.,
+regardless of the current indent value. Any tab character on an
+input line will be replaced with enough spaces to bring the position
+of the character following to the matching tab position. The table
+of commands at the beginning of this document was set using the
+command .ta 8 14 22 and then lines containing three tab characters.
+.sp
+.ul
+.bo
+Hyphenation
+.sp
+The hyphenation in this version of
+.ul
+roff
+.hc
+is primitive. If you set the hyphenation character with the .hc command,
+for example .hc #, then you can place one character in any word to
+indicate a point where that word can be hyphenated. Essentially, you
+should run
+.ul
+roff
+without hyphenation points, see where they are definitely needed, use
+the .hc # command and then add # characters at strategic positions in
+your text to help remove the unwelcome space padding. You can use .hc
+with no character specified to disable hyphenation.
+.sp
+.ul
+.bo
+Goals and Omissions
+.sp
+The main, conflicting, goals for this version of
+.ul
+roff
+were to translate Doug McIlroy's Ratfor version into the H language,
+to add in as many of the commands described in his 1971 paper on
+GECOS
+.ul
+roff,
+.hc #
+and to fit the res#ulting version into the 4Kword address space
+provided by PDP-7 Unix. I have been able to add commands such
+as .ju, .nj, .li and .ta to the Ratfor version; some of the
+code and ideas for these were borrowed from the Minix 1.5 version
+of
+.ul
+roff.
+I rewrote the line justification algorithm myself.
+.bp
+Because of the 4Kword size constraint, I have not added in these commands
+from the 1971 GECOS version of
+.ul
+roff:
+.li 2
+.ar, .bm, .cc, .cn, .cr, .ef, .eh, .en, .fn, .fs, .ll,
+.mq, .ne, .of, .oh, .op, .pa, .po, .ro, .sc, .sk, .tm and .tr.
+.sp
+.ul
+.bo
+Links and References
+.sp
+You can find the PDF of McIlroy's
+.ul
+roff
+manual for GECOS here:
+.br
+.ul
+http://manpages.bsd.lv/history/roff71.low.pdf
+.fi
+.sp
+You can find a copy of the Minix 1.5 version of
+.ul
+roff
+here:
+.br
+.ul
+http://minnie.tuhs.org/cgi-bin/utree.pl?file=Minix1.5/commands/roff.c
+.fi
+.sp
+You can find a copy of this version of
+.ul
+roff,
+wktroff.c, in source code
+format in the H language (a subset of C) here:
+.br
+.ul
+https://github.com/DoctorWkt/h-compiler
+.fi
+.sp
+You can find a copy of the reconstructed PDP-7 Unix system here:
+.br
+.ul
+https://github.com/DoctorWkt/pdp7-unix
