@@ -25,6 +25,12 @@ The change log follows below.
 
 Cheers, Warren
 
+Thu May 12 16:09:53 AEST 2016
+-----------------------------
+I've got an improved roff to compile and run. This version has most of
+the functionality of the 1971 GECOS roff. I've also added local arrays
+to the compiler.
+
 Thu May  5 13:25:34 AEST 2016
 -----------------------------
 I've added && and ||, comparisons as expressions, made function arguments
