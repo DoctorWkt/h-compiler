@@ -28,4 +28,4 @@ otest: h.pm
 	(cd tests; ./runtests)
 
 clean:
-	rm -f h.pm hello.s n.out
+	rm -f h.pm hello.s hello n.out

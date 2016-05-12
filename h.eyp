@@ -129,29 +129,24 @@ sub Die
 # values print the label and values now.
 sub new_globalid
 {
-  my ($id, $type, $valref)= @_;
+  my ($id, $type, $val)= @_;
   Die("$id global already declared") if (defined($Global{$id}));
   $Global{$id}=$type;
-  return if (!defined($valref));
+  return if (!defined($val));
 
-  # Arrays: also create a pointer to the array base
-  if ($type eq "array") {
-    push(@GlobaLine, "$id: $id.base");
-    push(@GlobaLine, "$id.base:");
-  } else {
-    push(@GlobaLine, "$id:");
-  }
-  foreach my $val (@$valref) {
-    push(@GlobaLine, "   $val");
-  }
+  push(@GlobaLine, "$id:");
+  push(@GlobaLine, "   $val") if (defined($val));
+
 }
 
 my $Nextpnum;			# The position of the next parameter
 
 # Declare a new local identifier for the current function
+# If how is 1, we will allocate storage for it.
+# If how is 0, we don't as it is an array.
 sub new_localid
 {
-  my ($fn,$id)= @_;
+  my ($fn,$id, $how)= @_;
 
   # If we already have a definition for this local,
   # ignore it if this is from a prototype
@@ -167,8 +162,35 @@ sub new_localid
   }
 
   # Define the local and store its position
-  $Local{$fn}{$id}=1;
+  $Local{$fn}{$id}=$how;
   $PPosn{$fn}[$Nextpnum++]= $id;
+}
+
+# Declare and create a new array. If $Last_functionid has a
+# value, then this is a local array, else it is a global array
+# Return the id
+sub new_array
+{
+  my ($id, $valref)= @_;
+
+  # Make this a local variable if $Last_functionid has a value
+  if ($Last_functionid) {
+     new_localid($Last_functionid, $id,0);
+     $id= "$Last_functionid.$id";
+  } else {
+     new_globalid($id, 'array');
+  }
+  # Strings are dealt with elsewhere
+  return ($id) if (!defined($valref));
+
+  # Create a pointer to the array base
+  push(@GlobaLine, "$id: $id.base");
+  push(@GlobaLine, "$id.base:");
+
+  foreach my $val (@$valref) {
+    push(@GlobaLine, "   $val");
+  }
+  return($id);
 }
 
 # Given an identifier arrayref, see if this is a local or
@@ -355,9 +377,9 @@ global_declaration_list:
 ;
 global_id_declaration:
       ptr_identifier.d
-	{ new_globalid($d,'',[0]); }
+	{ new_globalid($d,'',0); }
     | ptr_identifier.d '=' CONSTANT.c
-	{ new_globalid($d, '',[$c]); }
+	{ new_globalid($d, '',$c); }
     | array_declaration
 ;
 local_declaration:
@@ -369,11 +391,12 @@ local_declaration_list:
 ;
 local_id_declaration:
       ptr_identifier.p
-	{ new_localid($Last_functionid, $p); }
+	{ new_localid($Last_functionid, $p, 1); }
     | ptr_identifier.p '=' bit_expression.e
-	{ new_localid($Last_functionid, $p);
+	{ new_localid($Last_functionid, $p, 1);
 	  lac($e); dac([$p,'']);
 	}
+    | array_declaration
 ;
 array_declaration:
       ptr_identifier.d '[' CONSTANT.c ']'
@@ -383,14 +406,14 @@ array_declaration:
           foreach my $count (1 .. $c) {
             push(@zlist, 0);
           }
-          new_globalid($d, 'array', \@zlist);
+          new_array($d, \@zlist);
         }
     | ptr_identifier.d '[' ']' '=' '{' constant_list.l '}'
-	{ new_globalid($d, 'array', $l); }
+	{ new_array($d, $l); }
     | ptr_identifier.d '[' ']' '=' STRINGLITERAL.s
         {
-          add_strliteral($s, $d);
-          new_globalid($d, 'array', undef);
+          my $id= new_array($d, undef);
+          add_strliteral($s, $id);
         }
 ;
 constant_list:
@@ -439,7 +462,7 @@ parameter_list:
 ;
 parameter_declaration:
       type_specifier ptr_identifier.p 
-	{ new_localid($Last_functionid, $p); }
+	{ new_localid($Last_functionid, $p, 1); }
 ;
 function_expression:
       IDENTIFIER.f '(' ')'
@@ -1004,9 +1027,9 @@ sub Run {
 
     # Create the temporary locations
     foreach my $i (1 .. $Tempnum) {
-      new_globalid(".temp$i",'',[0]);
+      new_globalid(".temp$i",'',0);
     }
-    new_globalid('.ptr','',[0]);
+    new_globalid('.ptr','',0);
 
     # Parse the class which is in this file
     my $t= $self->YYParse( yylex => \&_Lexer, yyerror => \&_Error);
@@ -1040,9 +1063,11 @@ sub Run {
 
     # Print out local variables
     # Don't print out main.argc and main.argv
+    # Don't print out locals whose "$how" value is zero
     foreach my $fn (keys(%Local)) {
       foreach my $id (keys(%{$Local{$fn}})) {
 	my $l= "$fn.$id";
+	next if ($Local{$fn}{$id}==0);	# how is zero
 	next if ($l eq "main.argc");
 	next if ($l eq "main.argv");
 	print($OUT "$l: 0\n");
@@ -1057,7 +1082,7 @@ sub Run {
       foreach my $i (0 .. length($s)-1) {
         print($OUT "   " . ord(substr($s, $i, 1)) . "\n");
       }
-      print($OUT "0\n");
+      print($OUT "   0\n");
     }
 
     # Close the in/out files
