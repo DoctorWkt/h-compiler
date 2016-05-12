@@ -5,7 +5,9 @@
 	<title></title>
 	<meta name="generator" content="LibreOffice 5.0.0.5 (Linux)"/>
 	<meta name="created" content="00:00:00"/>
-	<meta name="changed" content="2016-05-05T19:16:56.642700938"/>
+	<meta name="changed" content="2016-05-12T16:08:08.604743946"/>
+	<meta name="created" content="00:00:00">
+	<meta name="changed" content="2016-05-05T19:16:56.642700938">
 	<meta name="created" content="00:00:00">
 	<meta name="changed" content="2016-05-05T19:02:36.438769843">
 	<meta name="created" content="00:00:00">
@@ -35,8 +37,8 @@ Toomey</b></font></p>
 informal introduction to the H programming language, a high-level
 language for Unix on the PDP-7. This is not an exhaustive or formal
 look at the language, mainly because the language is still under
-development. You are reading the details of the language as at May 5,
-2016.</font></p>
+development. You are reading the details of the language as at May
+12, 2016.</font></p>
 <p><font size="3" style="font-size: 12pt">The language is vaguely
 like a subset of the C language, so if you know C, C++ or Java, you
 should find this language very similar. From the beginning, there are
@@ -47,7 +49,7 @@ some differences that you should be aware of:</font></p>
 	recursion, as the language doesn't keep a stack</font></p>
 	<li/>
 <p><font size="3" style="font-size: 12pt">Arrays are
-	one-dimensional and can only be declared as global variables</font></p>
+	one-dimensional</font></p>
 </ul>
 <p><font size="3" style="font-size: 12pt">C comments are available:
 // and /* … */. </font>
@@ -58,7 +60,8 @@ some differences that you should be aware of:</font></p>
 is stored as words, which are 18 bits on the PDP-7. In variable
 declarations, you can use the “*” decoration but this is also not
 used; it might help you remember that the variable will be used as a
-pointer, but the compiler ignores this.</font></p>
+pointer, but the compiler ignores this. Functions always return a
+value, even if you declare them void.</font></p>
 <p><font size="3" style="font-size: 12pt">Variable names can be
 uppercase and lowercase and contain (but not start with) digits and
 the underscore.</font></p>
@@ -140,10 +143,10 @@ l-value can be:</font></font></p>
 operators that you have in C: <font face="Courier, monospace">+ - * /
 % &lt;&lt; &gt;&gt; &amp; | ^ &amp;&amp; ||</font></font></p>
 <p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">The
-unary operators are !  and ~  (logical and bitwise negation). There
-are also post-increment and post-decrement <font face="Arial, sans-serif">++</font>
-and <font face="Courier New, monospace">– </font>operators which
-are expressions.</font></font></p>
+unary operators are ! and ~ (logical and bitwise negation). There are
+also post-increment and post-decrement <font face="Courier New, monospace">++</font>
+and <font face="Courier New, monospace">--</font> operators which are
+expressions.</font></font></p>
 <p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">For
 the selection and loop statements, comparisons can be done with the
 normal relational operators: <font face="Courier, monospace">== != &lt;
@@ -169,9 +172,9 @@ same string multiple times if you create it multiple times, e.g. <font face="Cou
 *x= “abcd”; char *y= “abcd”;</font></font></p>
 <h1 class="western">Arrays and Pointers</h1>
 <p><font size="3" style="font-size: 12pt">The language supports
-arrays which can be declared in global scope. Examples:</font></p>
-<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">char *c[20];            // Filled with zero words</font>
-<font size="3" style="font-size: 12pt">int x= { 1,2,3,4,5,6 };</font>
+arrays which can be declared in global and local scope. Examples:</font></p>
+<pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">char c[20];                    // Filled with zero words</font>
+<font size="3" style="font-size: 12pt">int  x=      { 1,2,3,4,5,6 };</font>
 <font size="3" style="font-size: 12pt">char fred[]= “A sequence of characters\n”;</font></pre><p>
 <font size="3" style="font-size: 12pt">In functions (local scope),
 you can access the array as a reference, access the elements and
@@ -282,6 +285,38 @@ works.</font></font></p>
 ensures that there are no include paths by default. This means that
 you can #<font face="Arial, sans-serif">define</font>, <font face="Arial, sans-serif">#ifdef</font>,
 <font face="Arial, sans-serif">#include</font> as you normally would.</p>
+<h1 class="western">Gotchas</h1>
+<p>There are a few things to watch out for; some are due to the
+current compiler's construction and others are due to how the PDP-7
+code is generated.</p>
+<p>Right now, you should not try to use a function within an
+expression,e .g. this will probably fail:</p>
+<p style="margin-left: 2cm"><font face="Courier New, monospace">int
+x;</font></p>
+<p style="margin-left: 2cm"><font face="Courier New, monospace">x= 10
++ 20 – strlen(“hello”);</font></p>
+<p>The reason is that partial expression values (like 10 + 20) are
+stored in temporary memory locations, but each function thinks it has
+access to the same temporary locations. So 10 + 20 is stored, but
+then strlen() is called which internally will walk over the same
+temporary location. It is safe to call a function and store its
+result, e.g.</p>
+<p style="margin-left: 2cm"><font face="Courier New, monospace">int
+i, x;</font></p>
+<p style="margin-left: 2cm"><font face="Courier New, monospace">i=
+strlen(“hello”);</font></p>
+<p style="margin-left: 2cm"><font face="Courier New, monospace">x= 10
++ 20 – i;</font></p>
+<p><font face="Liberation Serif, serif">Another thing to watch out
+for is the fact that the post-increment and post-decrement operators
+work on the value to their left, not on the variable. So <font face="Courier New, monospace">*buf++</font>
+is going to increment <font face="Courier New, monospace">*buf</font>
+and not <font face="Courier New, monospace">buf</font>. I could fix
+this but I haven't yet.</font></p>
+<p><font face="Liberation Serif, serif">There are plans to change the
+compiler's output to allow for recursion. This would fix the
+temporary location problem, but slow the code down a bit. So far,
+only plans and no implementation.</font></p>
 <h1 class="western">More Details</h1>
 <p><font size="3" style="font-size: 12pt">If you want more details in
 the H language:</font></p>
@@ -292,12 +327,13 @@ the H language:</font></p>
 	use for regression testing</font></p>
 	<li/>
 <p><font size="3" style="font-size: 12pt">Look at the PDP-7
-	commands that I am writing in <font face="Courier, monospace">cmds/</font></font></p>
+	commands that I have written in <font face="Courier, monospace">cmds/</font></font></p>
 	<li/>
 <p><font face="Liberation Serif, serif"><font size="3" style="font-size: 12pt">Look
-	at <font face="Courier, monospace">roff.c</font> which compiles both
-	as C and H source code. This is the main reason for writing this
-	compiler.</font></font></p>
+	at <font face="Courier New, monospace">roff/</font><font face="Courier, monospace">roff.c</font>
+	and <font face="Courier New, monospace">roff/wktroff.c</font>, both
+	of which compile as C and H source code. Getting a working roff to
+	run was the main reason for writing this compiler.</font></font></p>
 	<li/>
 <p><font size="3" style="font-size: 12pt">Run <font face="Courier, monospace">eyapp
 	-c h.eyp | less</font> to see the Yacc grammar of the language</font></p>
