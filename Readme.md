@@ -17,8 +17,9 @@ runs the test suite of programs in the VM. The VM executable is called a7out.
 now the default).
 
 Read the h_intro.html file for an introduction to the H language and then
-look at the example files in test/t*.h. Also look at roff.c which is both a
-C and H program. "make rtest" builds and runs roff with a sample input file.
+look at the example files in test/t*.h. Also look at roff/roff.c which is both
+a C and H program. "make rtest" in the roff folder builds and runs roff with
+a sample input file.
 
 This is all heavily under development. Expect it to not work as expected :)
 The change log follows below.
