@@ -9,7 +9,7 @@ hello.s: hello.h h.pm
 
 # Build a single program; used for testing
 hello: hello.s hrt.s
-	./as7 -o hello hrt.s hello.s
+	./as7 -o hello -n hrt.s hello.s
 
 # Debug the program under test
 debug: hello

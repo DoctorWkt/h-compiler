@@ -24,6 +24,9 @@ my $Optimise=1;		# Are optimisations turned on?
 my @Constlist;       	# List of constants in array initialisation
 my %Global;          	# List of known global identifiers
 my @GlobaLine;		# Output lines for the globals
+my $Isvoid=0;		# Set if we see the keyword 'void'
+my $Isrecursive=0;	# Set if we see the keyword 'recursive'
+my %Functype;		# Hash of void and recursive types per function
 my %Local;           	# List of known per-function identifiers
 		     	# ->{fnname}->{id}
 my %PPosn= (	     	# The parameter names and position for each function
@@ -69,6 +72,7 @@ my %Keyword= (		# List of keywords in the grammar
   'if' 	     => 'IF',
   'int'      => 'INT',
   'return'   => 'RETURN',
+  'recursive'=> 'RECURSIVE',
   'switch'   => 'SWITCH',
   'void'     => 'VOID',
   'while'    => 'WHILE',
@@ -97,10 +101,10 @@ my %Function=(       	# List of known function identifiers
 );
 
 my %Syscall= (		# List of known system calls to translate
-  'exit'   => '.exit',
-  'open'   => '.open',
-  'read'   => '.read',
-  'write'  => '.write',
+  'exit'   => '.exit',	# The three built-in functions putchar,
+  'open'   => '.open',	# getchar and printn are included here so that
+  'read'   => '.read',  # we don't save/load locals on the stack when
+  'write'  => '.write', # we call them
   'close'  => '.close',
   'getuid' => '.getuid',
   'creat'  => '.creat',
@@ -114,6 +118,9 @@ my %Syscall= (		# List of known system calls to translate
   'chown'  => '.chown',
   'chmod'  => '.chmod',
   'fork'   => '.fork',
+  'printn'  => 'printn',
+  'getchar' => 'getchar',
+  'putchar' => 'putchar',
 );
 
 # Simple method to print error and die
@@ -131,6 +138,8 @@ sub new_globalid
 {
   my ($id, $type, $val)= @_;
   Die("$id global already declared") if (defined($Global{$id}));
+  Die("Cannot declare $id as type void") if ($Isvoid);
+  Die("Cannot declare $id as type recursive") if ($Isrecursive);
   $Global{$id}=$type;
   return if (!defined($val));
 
@@ -147,6 +156,8 @@ my $Nextpnum;			# The position of the next parameter
 sub new_localid
 {
   my ($fn,$id, $how)= @_;
+  Die("Cannot declare $id as type void") if ($Isvoid);
+  Die("Cannot declare $id as type recursive") if ($Isrecursive);
 
   # If we already have a definition for this local,
   # ignore it if this is from a prototype
@@ -258,6 +269,8 @@ sub new_functionid
   $Function{$id}=$definition;
   $Nextpnum=0;		# Params for this function start at 0
   $Last_functionid=$id;
+  $Functype{$id}{void}=1 if $Isvoid;
+  $Functype{$id}{recursive}=1 if $Isrecursive;
 }
 
 # Print out the label of the function just created
@@ -316,8 +329,9 @@ sub lac
 # Expand an identifier and store into it from the AC
 sub dac
 {
-  my $id= shift;
+  my ($id, $who)= @_;
   return if (!defined($id));
+  #push(@$Line, ['dac', getid($id, 'dac'), "\t\t\" $who"]);
   push(@$Line, ['dac', getid($id, 'dac')]);
 }
 
@@ -356,6 +370,79 @@ sub new_const
   return($label);
 }
 
+### FUNCTION CALLING CODE
+# For functions which are recursive, save their local variables
+# and the return address onto the stack.
+sub save_locals
+{
+  my $fname= shift;
+
+  # If the caller is a recursive function, then save all our local
+  # variables onto the stack. However, don't do this when we are calling
+  # a system call
+  if (defined($Functype{$Last_functionid}{recursive}) &&
+	!defined($Syscall{$fname})) {
+    # Firstly save the return address
+    push(@$Line, ['lac', "$Last_functionid"]);
+    push(@$Line, ['dac', '.stkptr i']);
+    push(@$Line, ['isz', '.stkptr']);
+
+    # Now save the locals
+    foreach my $local (@{ $PPosn{$Last_functionid} }) {
+      push(@$Line, ['lac', "$Last_functionid.$local"]);
+      push(@$Line, ['dac', '.stkptr i']);
+      push(@$Line, ['isz', '.stkptr']);
+    }
+  }
+}
+
+# Call the named function. For recursive function callers, also
+# restore the local variables and the return address from the stack.
+sub call_function
+{
+  my $fname= shift;
+  my $temp;
+  my $localcnt;
+
+  push(@$Line, ['jms', get_functionid($fname) ]);
+  # Store the returned value of the non-void function
+  $temp= tempdac() if (!defined($Functype{$fname}{void}));
+
+  # If the caller is a recursive function, retrieve our local variables
+  if (defined($Functype{$Last_functionid}{recursive}) &&
+	!defined($Syscall{$fname})) {
+    $localcnt= 1+ scalar(@{ $PPosn{$Last_functionid} }); # +1 for return addr
+    new_const( -$localcnt);
+    push(@$Line, ['lac', '.stkptr']);
+    push(@$Line, ['tad', "m$localcnt"]);
+    push(@$Line, ['dac', '.stkptr']);
+
+    # Firstly reload the return address
+    push(@$Line, ['lac', '.stkptr i']);
+    push(@$Line, ['dac', "$Last_functionid"]);
+    push(@$Line, ['isz', '.stkptr']);
+
+    # Now reload the locals
+    foreach my $local (@{ $PPosn{$Last_functionid} }) {
+      push(@$Line, ['lac', '.stkptr i']);
+      push(@$Line, ['dac', "$Last_functionid.$local"]);
+      push(@$Line, ['isz', '.stkptr']);
+    }
+
+    # And reset the stack pointer
+    push(@$Line, ['lac', '.stkptr']);
+    push(@$Line, ['tad', "m$localcnt"]);
+    push(@$Line, ['dac', '.stkptr']);
+  }
+  
+  # Return nothing or the temporary value
+  if (defined($Functype{$fname}{void})) {
+    return(undef);
+  } else {
+    return($temp);
+  }
+}
+
 %}
 
 %%
@@ -369,6 +456,7 @@ global_declarations:
 ;
 global_declaration:
       type_specifier global_declaration_list ';'
+	{ $Isvoid=0; $Isrecursive=0; }
     | type_specifier function_definition 
 ;
 global_declaration_list:
@@ -384,6 +472,7 @@ global_id_declaration:
 ;
 local_declaration:
       type_specifier local_declaration_list ';'
+	{ $Isvoid=0; $Isrecursive=0; }
 ;
 local_declaration_list:
       local_id_declaration
@@ -394,7 +483,7 @@ local_id_declaration:
 	{ new_localid($Last_functionid, $p, 1); }
     | ptr_identifier.p '=' bit_expression.e
 	{ new_localid($Last_functionid, $p, 1);
-	  lac($e); dac([$p,'']);
+	  lac($e); dac([$p,''], 'local_id_declaration');
 	}
     | array_declaration
 ;
@@ -433,9 +522,18 @@ ptr_identifier:
 	{ $i; }
 ;
 type_specifier:
+      type
+    | recursive type
+;
+type:
       VOID
+	{ $Isvoid=1; }
     | CHAR
     | INT 
+;
+recursive:
+      RECURSIVE
+	{ $Isrecursive=1; }
 ;
 pointer:
       '*' 
@@ -451,9 +549,13 @@ function_definition:
 ;
 function_declarator:
       ptr_identifier.f '(' ')'
-	{ new_functionid($f,'proto'); }
+	{ new_functionid($f,'proto');
+	  $Isvoid=0; $Isrecursive=0;
+	}
     | ptr_identifier.f '('
-	{ new_functionid($f,'proto'); }
+	{ new_functionid($f,'proto');
+	  $Isvoid=0; $Isrecursive=0;
+	}
       parameter_list ')'
 ;
 parameter_list:
@@ -462,26 +564,28 @@ parameter_list:
 ;
 parameter_declaration:
       type_specifier ptr_identifier.p 
-	{ new_localid($Last_functionid, $p, 1); }
+	{ new_localid($Last_functionid, $p, 1);
+	  $Isvoid=0; $Isrecursive=0;
+	}
 ;
 function_expression:
       IDENTIFIER.f '(' ')'
-	{ push(@$Line, ['jms', get_functionid($f) ]); tempdac(); }
+	{ save_locals($f); call_function($f); }
     | IDENTIFIER.f '('
-	{ $Nextpnum=0; $Calledfn= $f; }
+	{ $Nextpnum=0; $Calledfn= $f; save_locals($f); }
       argument_list ')' 
-	{ push(@$Line, ['jms', get_functionid($f) ]); tempdac(); }
+	{ call_function($f); }
 ;
 argument_list:
       argument.a
 	{ # Get the name of the function's param at this position
 	  my $pname= $PPosn{$Calledfn}[$Nextpnum++];
-	  lac($a); dac(["$Calledfn.$pname",'']);
+	  lac($a); dac(["$Calledfn.$pname",''], 'argument_list');
 	}
     | argument_list ',' argument.a
 	{ # Get the name of the function's param at this position
 	  my $pname= $PPosn{$Calledfn}[$Nextpnum++];
-	  lac($a); dac(["$Calledfn.$pname",'']);
+	  lac($a); dac(["$Calledfn.$pname",''], 'argument_list2');
 	}
 ;
 
@@ -741,7 +845,7 @@ labeled_statement:
 ;
 assignment_statement:
     lvalue_expression.l '=' bit_expression.e
-	{ lac($e); dac($l); reset_temp_locations(); }
+	{ lac($e); dac($l, 'assignment_statement'); reset_temp_locations(); }
 ;
 selection_statement:
       if_head %prec WEAK
@@ -1084,6 +1188,9 @@ sub Run {
       }
       print($OUT "   0\n");
     }
+
+    # Finally, write out the beginning of the stack
+    print($OUT ".stack: 0\n");
 
     # Close the in/out files
     close($IN);

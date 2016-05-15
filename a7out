@@ -362,7 +362,7 @@ sub dac {
     # Catch writes below the process' memory range
     if ($indaddr < 010000 && !($indaddr >= 010 && $indaddr <= 020) ) {
       $singlestep = 1;
-      dprintf("(****WRITE TO LOW MEMORY****)\n");
+      dprintf("(****WRITE TO LOW MEMORY 0%o ****)\n", $indaddr);
       printf( "break at PC %s\n", addr($PC) )
 					if ( ($debug) || ($singlestep) );
     }

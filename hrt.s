@@ -181,4 +181,4 @@ main.argv: .+1		" Pointer to argument pointers
    0
    0
    0
-
+.stkptr: .stack
