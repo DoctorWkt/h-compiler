@@ -5,7 +5,13 @@
 	<title></title>
 	<meta name="generator" content="LibreOffice 5.0.0.5 (Linux)"/>
 	<meta name="created" content="00:00:00"/>
-	<meta name="changed" content="2016-05-12T16:08:08.604743946"/>
+	<meta name="changed" content="2016-05-15T21:49:43.758097028"/>
+	<meta name="created" content="00:00:00">
+	<meta name="changed" content="2016-05-15T21:47:37.053415833">
+	<meta name="created" content="00:00:00">
+	<meta name="changed" content="2016-05-15T21:45:53.298875580">
+	<meta name="created" content="00:00:00">
+	<meta name="changed" content="2016-05-12T16:08:08.604743946">
 	<meta name="created" content="00:00:00">
 	<meta name="changed" content="2016-05-05T19:16:56.642700938">
 	<meta name="created" content="00:00:00">
@@ -38,15 +44,15 @@ informal introduction to the H programming language, a high-level
 language for Unix on the PDP-7. This is not an exhaustive or formal
 look at the language, mainly because the language is still under
 development. You are reading the details of the language as at May
-12, 2016.</font></p>
+15, 2016.</font></p>
 <p><font size="3" style="font-size: 12pt">The language is vaguely
 like a subset of the C language, so if you know C, C++ or Java, you
 should find this language very similar. From the beginning, there are
 some differences that you should be aware of:</font></p>
 <ul>
 	<li/>
-<p><font size="3" style="font-size: 12pt">There is no
-	recursion, as the language doesn't keep a stack</font></p>
+<p><font size="3" style="font-size: 12pt">There is now limited
+	recursion</font></p>
 	<li/>
 <p><font size="3" style="font-size: 12pt">Arrays are
 	one-dimensional</font></p>
@@ -56,12 +62,15 @@ some differences that you should be aware of:</font></p>
 </p>
 <h1 class="western">Types and Variable Declarations</h1>
 <p><font size="3" style="font-size: 12pt">While the language has
-“void”, “int” and “char”, they are not used. Everything
-is stored as words, which are 18 bits on the PDP-7. In variable
-declarations, you can use the “*” decoration but this is also not
-used; it might help you remember that the variable will be used as a
-pointer, but the compiler ignores this. Functions always return a
-value, even if you declare them void.</font></p>
+“int” and “char”, they are not used. Everything is stored as
+words, which are 18 bits on the PDP-7. In variable declarations, you
+can use the “*” decoration but this is also not used; it might
+help you remember that the variable will be used as a pointer, but
+the compiler ignores this.</font></p>
+<p><font size="3" style="font-size: 12pt">Functions can be declared
+“void”, “int” or “char”. Void functions don't return a
+value, “int” and “char” functions return one PDP-7 word
+value.</font></p>
 <p><font size="3" style="font-size: 12pt">Variable names can be
 uppercase and lowercase and contain (but not start with) digits and
 the underscore.</font></p>
@@ -190,10 +199,9 @@ access elements through a pointer. So this is possible:</font></p>
 <font size="3" style="font-size: 12pt">}</font></pre><h1 class="western">
 Function Parameters and Arguments</h1>
 <p><font size="3" style="font-size: 12pt">Functions have parameters
-and arguments, and you can write prototypes as well. Functions return
-a single value. Arguments are copied (call by value) into the
-parameters. Remember that parameters are really hidden globals, so
-you cannot do recursion. Example:</font></p>
+and arguments, and you can write prototypes as well. Non-void
+functions return a single value. Arguments are copied (call by value)
+into the parameters. Example:</font></p>
 <pre class="western" style="margin-left: 2cm"><font size="3" style="font-size: 12pt">char str1[]= &quot;This is my first string\n&quot;;</font>
 <font size="3" style="font-size: 12pt">char buf[100];</font>
 <font size="3" style="font-size: 12pt">int strlen(char *c)</font>
@@ -285,38 +293,67 @@ works.</font></font></p>
 ensures that there are no include paths by default. This means that
 you can #<font face="Arial, sans-serif">define</font>, <font face="Arial, sans-serif">#ifdef</font>,
 <font face="Arial, sans-serif">#include</font> as you normally would.</p>
-<h1 class="western">Gotchas</h1>
+<h1 class="western">Recursion</h1>
+<p>There is now recursion in the H compiler. You need to declare a
+function as “recursive”, see below. This causes the compiler to
+save the function's local variables on a stack, call the next
+function, and restore the local variables after the call. This is
+expensive in terms of speed and code size, so only declare recursive
+functions when you need to.</p>
+<p>If you have a recursive loop, e.g. <font face="Courier New, monospace">a()</font>
+calls <font face="Courier New, monospace">b()</font> which calls <font face="Courier New, monospace">c()</font>
+which calls <font face="Courier New, monospace">a()</font>, then you
+will need to declare all three functions as being recursive.</p>
+<p>Here is an example recursive function that prints out positive
+non-zero numbers in decimal.</p>
+<pre class="western" style="margin-left: 2cm">recursive void printnum(int x)
+{
+  int remainder, dividend;
+  if (x==0) return;
+  remainder= x%10;
+  dividend= x/10;
+  printnum(dividend);
+  putchar(remainder + '0');
+}</pre><p style="line-height: 100%">
+<font face="Liberation Serif, serif">And here is the usual factorial
+function:</font></p>
+<pre class="western" style="margin-left: 2cm; line-height: 100%">recursive int fact(int x)
+{
+  if (x==1) return(x);
+  return(fact(x - 1) * x);
+}</pre><h1 class="western">
+Gotchas</h1>
 <p>There are a few things to watch out for; some are due to the
 current compiler's construction and others are due to how the PDP-7
 code is generated.</p>
 <p>Right now, you should not try to use a function within an
-expression,e .g. this will probably fail:</p>
-<p style="margin-left: 2cm"><font face="Courier New, monospace">int
+expression, e .g. this will probably fail:</p>
+<p style="margin-left: 2cm; line-height: 80%"><font face="Courier New, monospace">int
 x;</font></p>
-<p style="margin-left: 2cm"><font face="Courier New, monospace">x= 10
-+ 20 – strlen(“hello”);</font></p>
+<p style="margin-left: 2cm; line-height: 80%"><font face="Courier New, monospace">x=
+10 + 20 – strlen(“hello”);</font></p>
 <p>The reason is that partial expression values (like 10 + 20) are
 stored in temporary memory locations, but each function thinks it has
 access to the same temporary locations. So 10 + 20 is stored, but
-then strlen() is called which internally will walk over the same
-temporary location. It is safe to call a function and store its
-result, e.g.</p>
-<p style="margin-left: 2cm"><font face="Courier New, monospace">int
+then <font face="Courier New, monospace">strlen()</font> is called
+which internally will walk over the same temporary location. It is
+safe to call a function and store its result, e.g.</p>
+<p style="margin-left: 2cm; line-height: 80%"><font face="Courier New, monospace">int
 i, x;</font></p>
-<p style="margin-left: 2cm"><font face="Courier New, monospace">i=
+<p style="margin-left: 2cm; line-height: 80%"><font face="Courier New, monospace">i=
 strlen(“hello”);</font></p>
-<p style="margin-left: 2cm"><font face="Courier New, monospace">x= 10
-+ 20 – i;</font></p>
+<p style="margin-left: 2cm; line-height: 80%"><font face="Courier New, monospace">x=
+10 + 20 – i;</font></p>
+<p><font face="Liberation Serif, serif">It's also safe to use a
+function's value as the first value in an expression, such as the
+line <font face="Courier New, monospace">return(fact(x - 1) * x);</font>
+in the factorial function above.</font></p>
 <p><font face="Liberation Serif, serif">Another thing to watch out
 for is the fact that the post-increment and post-decrement operators
 work on the value to their left, not on the variable. So <font face="Courier New, monospace">*buf++</font>
 is going to increment <font face="Courier New, monospace">*buf</font>
 and not <font face="Courier New, monospace">buf</font>. I could fix
 this but I haven't yet.</font></p>
-<p><font face="Liberation Serif, serif">There are plans to change the
-compiler's output to allow for recursion. This would fix the
-temporary location problem, but slow the code down a bit. So far,
-only plans and no implementation.</font></p>
 <h1 class="western">More Details</h1>
 <p><font size="3" style="font-size: 12pt">If you want more details in
 the H language:</font></p>
