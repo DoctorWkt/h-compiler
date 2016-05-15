@@ -322,7 +322,9 @@ sub add_strliteral
 sub lac
 {
   my $id= shift;
-  return if (!defined($id));
+  if (!defined($id)) {
+    Die("No expression value, perhaps a void function");
+  }
   push(@$Line, ['lac', getid($id, 'lac')]);
 }
 
