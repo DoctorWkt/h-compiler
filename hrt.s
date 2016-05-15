@@ -1,3 +1,7 @@
+.stkptr=010
+.=.stkptr
+   .stack
+.=010000
 init:
    lac 017777 i         " Divide the # argument words by 4
    lrss 2
@@ -181,4 +185,3 @@ main.argv: .+1		" Pointer to argument pointers
    0
    0
    0
-.stkptr: .stack

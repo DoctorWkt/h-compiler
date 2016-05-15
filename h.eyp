@@ -385,13 +385,11 @@ sub save_locals
     # Firstly save the return address
     push(@$Line, ['lac', "$Last_functionid"]);
     push(@$Line, ['dac', '.stkptr i']);
-    push(@$Line, ['isz', '.stkptr']);
 
     # Now save the locals
     foreach my $local (@{ $PPosn{$Last_functionid} }) {
       push(@$Line, ['lac', "$Last_functionid.$local"]);
       push(@$Line, ['dac', '.stkptr i']);
-      push(@$Line, ['isz', '.stkptr']);
     }
   }
 }
@@ -420,13 +418,11 @@ sub call_function
     # Firstly reload the return address
     push(@$Line, ['lac', '.stkptr i']);
     push(@$Line, ['dac', "$Last_functionid"]);
-    push(@$Line, ['isz', '.stkptr']);
 
     # Now reload the locals
     foreach my $local (@{ $PPosn{$Last_functionid} }) {
       push(@$Line, ['lac', '.stkptr i']);
       push(@$Line, ['dac', "$Last_functionid.$local"]);
-      push(@$Line, ['isz', '.stkptr']);
     }
 
     # And reset the stack pointer
