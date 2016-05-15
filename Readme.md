@@ -5,8 +5,8 @@ This is a one-pass compiler for a C-like language which I've written to
 target Unix on the PDP-7. The language still looks vaguely like C, but there
 are some important differences. Even though the language allows char and int,
 there is only really int. Also, the '*' decoration on variable declarations
-does nothing, and neither does 'void' on function decorations. They are just
-syntactic sugar to make it a bit more like C. There is also no recursion.
+does nothing. These are just syntactic sugar to make it a bit more like C.
+There is also limited recursion.
 
 To build the compiler and run the virtual machine to execute the assembly code,
 you need to have Perl, the Parse::Yapp and Data::Dumper packages installed.
@@ -17,14 +17,21 @@ runs the test suite of programs in the VM. The VM executable is called a7out.
 now the default).
 
 Read the h_intro.html file for an introduction to the H language and then
-look at the example files in test/t*.h. Also look at roff/roff.c which is both
-a C and H program. "make rtest" in the roff folder builds and runs roff with
-a sample input file.
+look at the example files in test/t*.h. Also look at roff/wktroff.c which is
+both a C and H program. "make rtest" in the roff folder builds and runs roff
+with a sample input file.
 
 This is all heavily under development. Expect it to not work as expected :)
 The change log follows below.
 
 Cheers, Warren
+
+Sun May 15 21:52:26 AEST 2016
+-----------------------------
+After some chat with Robert Swierczek about ways to implement recursion,
+I've found a way to implement a limited form of recursion. It costs
+somewhat in terms of speed and code size, but the programmer gets to
+enable it as required.
 
 Thu May 12 16:09:53 AEST 2016
 -----------------------------
