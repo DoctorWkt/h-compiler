@@ -1,12 +1,11 @@
 # h.eyp: Compiler for Warren's simple H language.
-# All variables are global, char and int are the same.
-# No recursion.
+# Char and int are the same. No structs, unions.
 #
 # (c) Warren Toomey, 2016. GPL3 license.
 #
 %token IDENTIFIER CONSTANT STRINGLITERAL
 %token INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP
-%token CHAR INT VOID 
+%token CHAR INT VOID RECURSIVE
 %token IF ELSE WHILE DO GOTO CONTINUE BREAK RETURN 
 %left WEAK 
 %right ELSE 
@@ -55,12 +54,14 @@ my @FinalLine;       	# Array of references to arrays which contain all
 my @Forstack;	     	# Stack of line arrayrefs of third expressions in FOR
 			# List of temp locations. We shift to get one,
 			# unshift to return it
-my @Templocn;
+
+my @Templocn;		# List of available temporary locations
 my $Tempnum= 20;	# Number of available temporary locations
 
 my $Line=[ ];		# List of assembly code lines we have generated
 		     	# but which have not yet been added to the final
 		     	# set of lines in @FinalLine
+
 my %Keyword= (		# List of keywords in the grammar
   'break'    => 'BREAK',
   'char'     => 'CHAR',
@@ -73,10 +74,10 @@ my %Keyword= (		# List of keywords in the grammar
   'int'      => 'INT',
   'return'   => 'RETURN',
   'recursive'=> 'RECURSIVE',
-  'switch'   => 'SWITCH',
   'void'     => 'VOID',
   'while'    => 'WHILE',
 );
+
 my %Function=(       	# List of known function identifiers
     'printn'  => 'proto',
     'getchar' => 'proto',
@@ -132,8 +133,8 @@ sub Die
 }
 
 
-# Declare a new global identifier id. If there are
-# values print the label and values now.
+# Declare a new global identifier id. If there is a
+# value, print the label and the value.
 sub new_globalid
 {
   my ($id, $type, $val)= @_;
@@ -144,7 +145,7 @@ sub new_globalid
   return if (!defined($val));
 
   push(@GlobaLine, "$id:");
-  push(@GlobaLine, "   $val") if (defined($val));
+  push(@GlobaLine, "   $val");
 
 }
 
@@ -153,6 +154,7 @@ my $Nextpnum;			# The position of the next parameter
 # Declare a new local identifier for the current function
 # If how is 1, we will allocate storage for it.
 # If how is 0, we don't as it is an array.
+# Parameters to a function are treated as locals.
 sub new_localid
 {
   my ($fn,$id, $how)= @_;
@@ -172,13 +174,15 @@ sub new_localid
     Die("$fn: $id local already declared");
   }
 
+  # This was not defined beforehand.
   # Define the local and store its position
   $Local{$fn}{$id}=$how;
   $PPosn{$fn}[$Nextpnum++]= $id;
 }
 
 # Declare and create a new array. If $Last_functionid has a
-# value, then this is a local array, else it is a global array
+# value, then this is a local array, so we need to decorate its
+# name with the function's name. Otherwise, it is a global array.
 # Return the id
 sub new_array
 {
@@ -191,6 +195,7 @@ sub new_array
   } else {
      new_globalid($id, 'array');
   }
+
   # Strings are dealt with elsewhere
   return ($id) if (!defined($valref));
 
@@ -198,6 +203,7 @@ sub new_array
   push(@GlobaLine, "$id: $id.base");
   push(@GlobaLine, "$id.base:");
 
+  # Output the contents of the array
   foreach my $val (@$valref) {
     push(@GlobaLine, "   $val");
   }
@@ -207,6 +213,12 @@ sub new_array
 # Given an identifier arrayref, see if this is a local or
 # a global. Return a local identifier ref or the original.
 # Return a string with identifier and any 'i'
+# 
+# Expression identifiers are represented as an arrayref with two or
+# three elements: the identifier, 'i' if it needs an
+# indirect reference, and an optional third value which
+# is the array offset expression (i.e. also an arrayref).
+# The second element is 'array' if there is an offset.
 sub getid
 {
   my ($idref, $how)= @_;
@@ -217,6 +229,8 @@ sub getid
   if ($id=~ m{^.temp\d$}) {
     unshift(@Templocn, $id);
   }
+
+  # Add the function name if this is a local identifier
   $id= "$Last_functionid.$id"
 		if (defined($Local{$Last_functionid}{$id}));
 
@@ -231,8 +245,9 @@ sub getid
     Die("can't index an array more than once") if ($offind eq 'array');
     $offset= getid($offset);	# Get the real offset name
 
-    # Get the pointer to the array element into ptr1
-    # and then get back the saved AC
+    # Get the pointer to the array element into .ptr
+    # and then get back the saved AC. .ptr is now
+    # pointing at the array element
     push(@$Line, ['lac', $id]);
     push(@$Line, ['tad', "$offset"]);
     push(@$Line, ['dac', '.ptr']);
@@ -266,14 +281,18 @@ sub new_functionid
   Die("$id function conflicts with global") if (defined($Global{$id}));
   Die("$id function already declared")
 	if (defined($Function{$id}) && $Function{$id} eq "real");
-  $Function{$id}=$definition;
-  $Nextpnum=0;		# Params for this function start at 0
+
+  $Function{$id}=$definition;	# proto or real
+  $Nextpnum=0;			# Params for this function start at 0
   $Last_functionid=$id;
+
+  # Mark the type of function
   $Functype{$id}{void}=1 if $Isvoid;
   $Functype{$id}{recursive}=1 if $Isrecursive;
 }
 
 # Print out the label of the function just created
+# We do this for real function declarations, not just prototypes
 sub print_function_label
 {
   $Function{$Last_functionid}= 'real';
@@ -362,6 +381,9 @@ sub new_const
 {
   my $c= shift;
   my $label;
+
+  # Negative constants have labels starting with m (minus)
+  # Positive constants have labels starting with d (decimal)
   if ($c<0) {
     my $absc= abs($c);
     $label= "m$absc";
@@ -404,8 +426,9 @@ sub call_function
   my $temp;
   my $localcnt;
 
+  # Output the code to call the function, and
+  # store the returned value of the non-void function
   push(@$Line, ['jms', get_functionid($fname) ]);
-  # Store the returned value of the non-void function
   $temp= tempdac() if (!defined($Functype{$fname}{void}));
 
   # If the caller is a recursive function, retrieve our local variables
@@ -454,7 +477,9 @@ global_declarations:
 ;
 global_declaration:
       type_specifier global_declaration_list ';'
-	{ $Isvoid=0; $Isrecursive=0; }
+	{ # Reset the void/recursive flags for the next function declaration
+	  $Isvoid=0; $Isrecursive=0;
+	}
     | type_specifier function_definition 
 ;
 global_declaration_list:
@@ -463,14 +488,20 @@ global_declaration_list:
 ;
 global_id_declaration:
       ptr_identifier.d
-	{ new_globalid($d,'',0); }
+	{ # A new global variable with a default zero value
+	  new_globalid($d,'',0);
+	}
     | ptr_identifier.d '=' CONSTANT.c
-	{ new_globalid($d, '',$c); }
+	{ # A new global variable with a specific value
+	  new_globalid($d, '',$c);
+	}
     | array_declaration
 ;
 local_declaration:
       type_specifier local_declaration_list ';'
-	{ $Isvoid=0; $Isrecursive=0; }
+	{ # Reset the void/recursive flags for the next function declaration
+	  $Isvoid=0; $Isrecursive=0;
+	}
 ;
 local_declaration_list:
       local_id_declaration
@@ -478,9 +509,13 @@ local_declaration_list:
 ;
 local_id_declaration:
       ptr_identifier.p
-	{ new_localid($Last_functionid, $p, 1); }
+	{ # A new local variable in this function named $p
+	  new_localid($Last_functionid, $p, 1);
+	}
     | ptr_identifier.p '=' bit_expression.e
-	{ new_localid($Last_functionid, $p, 1);
+	{ # A new local variable in this function named $p
+	  new_localid($Last_functionid, $p, 1);
+	  # Load the expression and save it into $p
 	  lac($e); dac([$p,''], 'local_id_declaration');
 	}
     | array_declaration
@@ -496,9 +531,12 @@ array_declaration:
           new_array($d, \@zlist);
         }
     | ptr_identifier.d '[' ']' '=' '{' constant_list.l '}'
-	{ new_array($d, $l); }
+	{ # Create a new array initialised with the constant list
+	  new_array($d, $l);
+	}
     | ptr_identifier.d '[' ']' '=' STRINGLITERAL.s
-        {
+	{ # Create a new array with no element list, but then
+	  # add the string literal and point the array at it
           my $id= new_array($d, undef);
           add_strliteral($s, $id);
         }
@@ -543,15 +581,21 @@ function_definition:
 	  reset_temp_locations();
 	}
       compound_statement
-	{ push(@$Line, ['jmp', "$Last_functionid i"]); }
+	{ # Output the code to return from the functions
+	  push(@$Line, ['jmp', "$Last_functionid i"]);
+	}
 ;
 function_declarator:
       ptr_identifier.f '(' ')'
-	{ new_functionid($f,'proto');
+	{ # Declare the function as a prototype for now
+	  # and then reset the void/recursive flags for later
+	  new_functionid($f,'proto');
 	  $Isvoid=0; $Isrecursive=0;
 	}
     | ptr_identifier.f '('
-	{ new_functionid($f,'proto');
+	{ # Declare the function as a prototype for now
+	  # and then reset the void/recursive flags for later
+	  new_functionid($f,'proto');
 	  $Isvoid=0; $Isrecursive=0;
 	}
       parameter_list ')'
@@ -562,7 +606,9 @@ parameter_list:
 ;
 parameter_declaration:
       type_specifier ptr_identifier.p 
-	{ new_localid($Last_functionid, $p, 1);
+	{ # Create the parameter as a new local, and
+	  # reset the void/recursive flags
+	  new_localid($Last_functionid, $p, 1);
 	  $Isvoid=0; $Isrecursive=0;
 	}
 ;
@@ -570,7 +616,8 @@ function_expression:
       IDENTIFIER.f '(' ')'
 	{ save_locals($f); call_function($f); }
     | IDENTIFIER.f '('
-	{ $Nextpnum=0; $Calledfn= $f; save_locals($f); }
+	{ # We have parameters, so start them at zero
+	  $Nextpnum=0; $Calledfn= $f; save_locals($f); }
       argument_list ')' 
 	{ call_function($f); }
 ;
@@ -587,7 +634,7 @@ argument_list:
 	}
 ;
 
-# Expressions are represented as an arrayref with two or
+# Expression identifiers are represented as an arrayref with two or
 # three elements: the identifier, 'i' if it needs an
 # indirect reference, and an optional third value which
 # is the array offset expression (i.e. also an arrayref).
@@ -604,9 +651,11 @@ basic_expression:
       lvalue_expression
     | postop_expression
     | CONSTANT.c
-	{ $c= new_const($c); [ $c, '']; }
+	{ # Create a constant, get its id and return an idref
+	  $c= new_const($c); [ $c, '']; }
     | STRINGLITERAL.s
-	{ my $id= add_strliteral($s);
+	{ # Create a string literal, get its id and return an idref
+	  my $id= add_strliteral($s);
 	  [ $id, '' ]; }
     | function_expression
     | '(' bit_expression.b ')'
@@ -623,6 +672,7 @@ unary_expression:
     | '!' basic_expression.e
         { my $temp= tempdac();
 	  lac($e);
+	  # Set the temp to 0 if $e is non-zero, 1 if $e is zero
   	  push(@$Line, ['sza']);
   	  push(@$Line, ['jmp', '1f']);
   	  push(@$Line, ['lac', '.d1']);
@@ -770,7 +820,7 @@ relational_expression:
 	  lac($lhs);
 	  push(@$Line, ['sad', getid($rhs, 'rhs==') ]);
           push(@$Line, ['jmp', '1f']);
-          push(@$Line, ['cla']);	# Not true, now zero
+          push(@$Line, ['cla']);		# Not true, now zero
           push(@$Line, ['jmp', '2f']);
           push(@$Line, ['1: lac', '.d1']);	# True, now one
           push(@$Line, ['2:']);
@@ -963,7 +1013,10 @@ postop_statement:
 ;
 postop_expression:
       lvalue_expression.l INC_OP
-	{ my ($id, $ind)= getid($l, 'lac');
+	{ # We manually load into $id and $ind so
+	  # that we can increment this identifier
+	  # separately from the original value in $temp
+	  my ($id, $ind)= getid($l, 'lac');
 	  push(@$Line, ['lac', "$id $ind"]);
 	  my $temp= tempdac();
 	  push(@$Line, ['tad', '.d1']); 
@@ -1128,6 +1181,7 @@ sub Run {
     $Linenumber = 0;
 
     # Create the temporary locations
+    # and the pointer for array element access
     foreach my $i (1 .. $Tempnum) {
       new_globalid(".temp$i",'',0);
     }
@@ -1137,7 +1191,7 @@ sub Run {
     my $t= $self->YYParse( yylex => \&_Lexer, yyerror => \&_Error);
 
 
-    # Add any remianing lines to the final set of lines of code
+    # Add any remaining lines to the final set of lines of code
     push(@FinalLine, $Line);
 
     # Do any optimisations
@@ -1212,18 +1266,25 @@ sub do_optimisations
 {
   foreach my $lref (@FinalLine) {
 
-    # We loop until there were no optimisations.
-    # This is because one optimisation will allow
+    # We loop until there are no optimisations.
+    # This is because one optimisation may allow
     # a futher optimisation.
     while (1) {
+      # Set the details of the previous instruction to bogus values
       my ($prevopcode, $prevoperand, $previndex)=('','',-100);
       my $ac_value='';
       my $index=0;
+
+      # So far, we haven't done any optimisations
       my $no_optimisation=1;
+
+      # Get the next set of lines to process
       foreach my $l (@$lref) {
 	if (!defined($l)) {
 	  $index++; next;
  	}
+
+	# Get the opcode and operand on this instructions
         my ($opcode, $operand)= @$l;
 	# print("$index: $opcode, $operand; no_optim is $no_optimisation\n");
         $operand='' if (!defined($operand));
@@ -1284,7 +1345,7 @@ sub do_optimisations
 	  }
         }
 
-        # Save this line
+        # Save this line as the last instruction for the next iteration
         ($prevopcode, $prevoperand, $previndex)= ($opcode, $operand, $index);
         $index++;
       }
