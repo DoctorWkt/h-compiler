@@ -196,27 +196,6 @@ usage() if ( @ARGV < 1 );
 #   lam    => 0777777,		# (load accumulator minus)
 );
 
-# List of pseudo-instructions for the A compiler
-my %AInst= (
-    LOADA  => 1,
-    ADD => 2,
-    LOADI  => 3,
-    SYSCALL  => 4,
-    MOV  => 5,
-    SUB  => 6,
-    MUL  => 7,
-    DIV  => 8,
-    RET  => 9,
-    CALL  => 10,
-);
-
-# List of A compiler system calls
-my %ASyscall= (
-    printn => 1,
-    getchar => 2,
-    putchar => 3,
-    exit => 4,
-);
 
 # Parse all the files
 print STDERR "I\n";		# like the real as
@@ -466,9 +445,6 @@ sub parse_expression {
 	elsif ($line =~ s{^([A-Za-z\.][A-Za-z0-9_\.]*)}{}) {
 	    my $sym = $1;
 	    print "\tsym: $sym\n" if ($debug);
-	    if (defined($AInst{$sym})) {
-		return(parse_ainstruction($sym));
-	    }
 	  
 	    if (defined($Var{$sym})) {
 		$syllable = $Var{$sym};
@@ -541,64 +517,6 @@ sub parse_expression {
 	$word &= 0777777;
 	printf("\tsyllable: %#o word: %#o\n", $syllable, $word) if ($debug);
     }
-}
-
-# Parse an A compiler pseudo-instruction
-# and return the resulting word
-sub parse_ainstruction
-{
-  my $opcode= shift;
-  my $args="";
-  my $word= $AInst{$opcode};
-  my $shift=6;
-
-  # Get any arguments up to a semicolon or comment
-  if ($line=~ s{\s*([^;"]*)\s*([;"]?)}{$2}) {
-    $args= $1;
-  }
-  print("A instruction $opcode, args $args\n") if ($debug);
-  print(" leftover line is $line\n") if ($debug);
-
-  # Split into syllables and process them
-  foreach my $syllable (split(/\s+/, $args)) {
-    print("  syllable $syllable\n") if ($debug);
-    # It's a register
-    if ($syllable=~ m{^r(\d+)}) {
-      print("  shifting $syllable by $shift\n") if ($debug);
-      $word |= $1 << $shift; $shift += 4;
-      next;
-    }
-    # It's a constant
-    if ($syllable=~ m{^\d+}) {
-      $syllable= oct($syllable) if ($syllable=~ m{^0[0-7]+});
-      printf("  shifting constant 0%o by 10, 0%o\n",
-				$syllable, $syllable << 10) if ($debug);
-      $word |= $syllable << 10;
-      next;
-    }
-    # It's a symbol XXX. Deal with it on pass 2
-    next if ($stage != 2);
-
-    # If a system call, convert the symbol into a syscall number
-    if ($opcode eq "SYSCALL") {
-      printf("  shifting syscall %s %d by 10\n",
-			$syllable, $ASyscall{$syllable}) if ($debug);
-      $word |= $ASyscall{$syllable} << 10;
-      next;
-    }
-
-    # It must be a location to branch to
-    my $symlocation= $Label{$syllable};
-    my $location  = $Var{'.'};
-    my $diff= $symlocation - $location;
-    return err('X', "$syllable too far away for A instruction")
-							if (abs($diff)>127);
-    my $diff2= ($diff << 10) & 0777777;
-    printf("  shifting sym %s diff %d by 10, 0%o\n",
-				$syllable, $diff, $diff2) if ($debug);
-    $word |= $diff2;
-  }
-  return($word);
 }
 
 # Given a relative label number and a direction,

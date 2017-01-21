@@ -679,6 +679,19 @@ sub eae {
         $PC++;
         return;
     }
+					# lrs: long right shift
+    if ( ($maskedinstr == 0640500) || ($maskedinstr == 0641500) ) {
+        dprintf( "lrs step %d\n", $step );
+	# Clear AC if the 01000 bit is set
+	$AC=0 if ($maskedinstr == 0641500);
+        foreach my $i ( 1 .. $step ) {
+            my $MQmsb = ( $AC & 1 ) ? 0400000 : 0;
+            $AC = ( ( $AC >> 1 ) | ( ($LINK) ? 0400000 : 0 ) ) & MAXINT;
+            $MQ = ( ( $MQ >> 1 ) | $MQmsb ) & MAXINT;
+        }
+        $PC++;
+        return;
+    }
     if ( $maskedinstr == 0640700 ) {    # als: AC left shift
         dprintf( "als AC step %d\n", $step );
         $AC = ( $AC << $step ) & MAXINT;
